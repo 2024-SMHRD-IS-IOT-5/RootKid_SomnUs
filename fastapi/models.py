@@ -1,0 +1,1 @@
+# Pydantic 모델 및 DB 스키마 정의
