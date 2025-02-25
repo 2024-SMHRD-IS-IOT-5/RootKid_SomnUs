@@ -1,3 +1,5 @@
 .env
 
 fastapi/__pycache__/
+
+llm/.env
