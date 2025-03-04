@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from controller.websocket_controller import router as websocket_router
+from controller.nfc import router as nfc_router
 import threading
 import asyncio
 from services.websocket_service import websocket_service
@@ -16,6 +17,7 @@ app = FastAPI(
 
 #  라우터 등록
 app.include_router(websocket_router)
+app.include_router(nfc_router)
 
 # CORS 설정 추가
 app.add_middleware(
@@ -45,7 +47,7 @@ if __name__ == "__main__":
     threading.Thread(target=server_input_thread,args=(loop, ),daemon=True).start()
     
     import uvicorn
-    config = uvicorn.Config(app, host="127.0.0.1", port=8001, log_level="info")
+    config = uvicorn.Config(app, host="0.0.0.0", port=8001, log_level="info")
     server = uvicorn.Server(config)
     loop.run_until_complete(server.serve())
     
