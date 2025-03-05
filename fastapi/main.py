@@ -2,11 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from controller.websocket_controller import router as websocket_router
 from controller.nfc import router as nfc_router
+from controller.auth import router as auth_router
+from controller.db_test import router as db_test_router
 import threading
 import asyncio
 from services.websocket_service import websocket_service
-# from config import settings  # 환경 변수 설정 (선택)
-
 
 # FastAPI 초기화
 app = FastAPI(
@@ -18,6 +18,8 @@ app = FastAPI(
 #  라우터 등록
 app.include_router(websocket_router)
 app.include_router(nfc_router)
+app.include_router(auth_router)
+app.include_router(db_test_router)
 
 # CORS 설정 추가
 app.add_middleware(

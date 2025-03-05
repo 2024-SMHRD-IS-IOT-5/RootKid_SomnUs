@@ -1,55 +1,65 @@
 # 사용자 인증 및 권한 관리를 담당 비즈니스 로직 계층
 # 실제 인증 로직 수행(로그인, 회원가입, 토큰 발급 등)
-# DB와 직접 통신
 
-# from datetime import datetime, timedelta
-# from typing import Optional
-# from jose import JWTError, jwt
-# from passlib.context import CryptContext
-# from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-# from models import User
-# from database import users_collection  # MongoDB 연동
+from fastapi import HTTPException
+from core.security import hash_password, verify_password, create_access_token
+from core.database import users_collection, parents_collection
+from models.auth_models import UserRegister, ParentRegister, UserLogin, TokenResponse
+from datetime import timedelta
 
-# # 비밀번호 해싱을 위한 설정
-# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+async def register_user(user: UserRegister):
+    """사용자(학생) 회원가입 로직"""
+    existing_user = await users_collection.find_one({"id": user.id})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="이미 존재하는 ID입니다.")
 
-# # JWT 토큰 생성
-# def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-#     to_encode = data.copy()
-#     expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-#     to_encode.update({"exp": expire})
-#     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    hashed_password = hash_password(user.password)
+    new_user = {"id":user.id, "password":hashed_password, "name":user.name,
+                "age":user.age, "weight":user.weight}
+    
+    await users_collection.insert_one(new_user)
+    return {"message": "회원가입 성공"}
 
-# # JWT 토큰 검증
-# def decode_token(token: str):
-#     try:
-#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#         return payload
-#     except JWTError:
-#         return None
+async def register_parent(parent: ParentRegister):
+    """학부모 회원가입 로직"""
+    existing_parent = await parents_collection.find_one({"id": parent.id})
+    if existing_parent:
+        raise HTTPException(status_code=400, detail="이미 존재하는 학부모 ID입니다.")
 
-# # 비밀번호 해싱
-# def hash_password(password: str) -> str:
-#     return pwd_context.hash(password)
+    existing_student = await users_collection.find_one({"id": parent.student_id})
+    if not existing_student:
+        raise HTTPException(status_code=400, detail="학생 ID가 존재하지 않습니다.")
 
-# # 비밀번호 검증
-# def verify_password(plain_password: str, hashed_password: str) -> bool:
-#     return pwd_context.verify(plain_password, hashed_password)
+    hashed_password = hash_password(parent.password)
 
-# # 사용자 회원가입
-# async def register_user(username: str, email: str, password: str):
-#     existing_user = await users_collection.find_one({"email": email})
-#     if existing_user:
-#         return None  # 이메일 중복 처리
+    new_parent = {
+        "student_id": parent.student_id,
+        "id": parent.id,
+        "password": hashed_password
+    }
 
-#     hashed_pw = hash_password(password)
-#     new_user = {"username": username, "email": email, "password": hashed_pw}
-#     await users_collection.insert_one(new_user)
-#     return new_user
+    await parents_collection.insert_one(new_parent)
+    return {"message": "학부모 회원가입 성공"}
 
-# # 사용자 로그인 (ID/PW 검증)
-# async def authenticate_user(email: str, password: str):
-#     user = await users_collection.find_one({"email": email})
-#     if not user or not verify_password(password, user["password"]):
-#         return None  # 로그인 실패
-#     return user
+
+async def login_user(user: UserLogin):
+    """사용자(학생)/ 학부모 로그인"""
+    # 1. 학생 컬랙션에서 찾기
+    db_user = await users_collection.find_one({"id": user.id})
+    user_type = "user" if db_user else None
+    
+    # 2. 학생 컬렉션에 없으면 학부모 컬렉션에서 찾기
+    if not db_user:
+        db_user = await parents_collection.find_one({"id": user.id})
+        user_type = "parent" if db_user else None
+    
+    # 3. 아이디 없거나 불일치
+    if not db_user or not verify_password(user.password, db_user["password"]):
+        raise HTTPException(status_code=400, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
+    
+    # 4. JWT 토근 생성
+    access_token = create_access_token(
+        {"sub":user.id, "role": user_type},
+        expires_delta=timedelta(hours=1)
+        )
+    return TokenResponse(access_token=access_token, token_type="bearer")

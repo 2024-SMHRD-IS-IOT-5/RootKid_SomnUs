@@ -1,25 +1,29 @@
 # 로그인/회원가입
 # FastAPI의 엔드포인트 auth_service.py의 함수를 호출
 
-# from fastapi import APIRouter, HTTPException, Depends
-# from models import UserCreate, UserResponse
-# from services.auth_service import register_user, authenticate_user, create_access_token
-# from datetime import timedelta
+from fastapi import APIRouter, HTTPException
+from services.auth_service import register_user, login_user, register_parent
+from models.auth_models import UserLogin, UserRegister, TokenResponse, ParentRegister
 
-# router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter()
 
-# @router.post("/register", response_model=UserResponse)
-# async def register(user: UserCreate):
-#     new_user = await register_user(user.username, user.email, user.password)
-#     if not new_user:
-#         raise HTTPException(status_code=400, detail="Email already exists")
-#     return new_user
+@router.post("/register/student")
+async def register_student_api(user: UserRegister):
+    result = await register_user(user)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
 
-# @router.post("/login")
-# async def login(email: str, password: str):
-#     user = await authenticate_user(email, password)
-#     if not user:
-#         raise HTTPException(status_code=401, detail="Invalid credentials")
+@router.post("/register/parent")
+async def register_parent_api(parent: ParentRegister):
+    result = await register_parent(parent)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
 
-#     access_token = create_access_token(data={"sub": user["email"]}, expires_delta=timedelta(minutes=60))
-#     return {"access_token": access_token, "token_type": "bearer"}
+@router.post("/login", response_model=TokenResponse)
+async def login(user: UserLogin):
+    result = await login_user(user)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
