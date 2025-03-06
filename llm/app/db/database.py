@@ -1,11 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-import os
-from dotenv import load_dotenv
-import asyncio
-
-load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI")
-print(MONGO_URI)
+from app.core.config import MONGO_URI, DB_NAME
 
 client = AsyncIOMotorClient(MONGO_URI)
-db = client["chat_record"]
+
+db = client[DB_NAME]

@@ -7,5 +7,5 @@ async def save_chat(question: str, response: str):
         "response" : response,
         "timestamp" : datetime.utcnow()
     }
-    insert_result = await db.history.insert_one(chat_data)
+    insert_result = await db.history.insert_one(chat)
     print("insert 성공! ID: ", insert_result.inserted_id)
