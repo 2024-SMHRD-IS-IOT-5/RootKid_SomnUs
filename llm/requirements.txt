@@ -1,8 +1,9 @@
 
 fastapi
 uvicorn[standard]
-pymongo
 python-dotenv
 langchain
 openai
 websockets
+langchain_openai
+motor

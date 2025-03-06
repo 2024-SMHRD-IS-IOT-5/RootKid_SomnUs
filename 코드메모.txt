@@ -1,0 +1,42 @@
+============= 깃 메모 ==============
+
+git add . 
+파일 다 add
+
+git commit -m "버전이름"
+버전 생성하고 commit
+
+git branch 브랜치명
+브랜치 생성
+
+git switch 브랜치
+브랜치 스위치
+
+git merge 브랜치
+현재 브랜치에 선택한 브랜치를 merge
+
+git push -u 저장소주소 브랜치명
+push
+
+git pull 저장소주소 브랜치명
+pull
+
+============ 도커 메모 ==============
+
+docker-compose up --build -d
+컨테이너 생성
+
+도커 실행 할 때에는 두 종류가 있음
+- 코드에 변경점이 있을 때
+docker-compose up --build
+- 변경점이 없을 때
+docker-compose up
+
+실행 됐으면 이제 파이썬 파일, 특정 파일 실행하고 싶을땐
+docker exec -it 컨테이너이름 파일경로
+
+도커 정지
+docker-compose down
+
+mongob 실행해야함!!!
+docker start mongodb

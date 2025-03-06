@@ -14,19 +14,11 @@ def chatbot(question):
     
     # 프롬프트 템플릿 설정
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "너는 여행 정보 전문가야. 여행지 추천을 전문으로 해."),
+        ("system", "당신은 식사 메뉴 추천 프로입니다. 사용자의 상황에 적절한 메뉴를 딱 한개만 추천해주세요."),
         ("human", "{question}"),
         ("ai", """
-        please follow this format:
-        ==========================
-        title
-        ==========================
-        - response 1
-        - explanation
-        - response 2
-        - explanation
-        - response3
-        - explanation
+        이 형식을 따라 주시고, 반드시 한 줄로만 출력해주세요.:
+        "메뉴 이름" + 은 어때요? +"추천 이유"
         """)
     ])
 
@@ -34,8 +26,4 @@ def chatbot(question):
     chain = prompt | llm
     response = chain.invoke({"question": question})  
 
-    print(response)
-
-if __name__ == "__main__":
-    user_question = input("여행 관련 질문을 입력하세요: ")
-    chatbot(user_question)
+    return response
