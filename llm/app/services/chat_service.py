@@ -26,4 +26,4 @@ def chatbot(question):
     chain = prompt | llm
     response = chain.invoke({"question": question})  
 
-    return response
+    return response.content

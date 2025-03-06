@@ -24,17 +24,28 @@ async def send_report(report_type: str) -> str:
         raise HTTPException(status_code=500, detail=f"응답 전송 실패: {str(e)}")
     return response_text
 
-@router.post("chatbot/daily-report", response_model=ReportResponse)
-async def daily_report():
-    result = await send_report("일간")
-    return ReportResponse(response=result)
+# @router.post("chatbot/daily-report", response_model=ReportResponse)
+# async def daily_report():
+#     result = await send_report("일간")
+#     return ReportResponse(response=result)
 
-@router.post("chatbot/weekly-report", response_model=ReportResponse)
-async def weekly_report():
-    result = await send_report("주간")
-    return ReportResponse(response=result)
+# @router.post("chatbot/weekly-report", response_model=ReportResponse)
+# async def weekly_report():
+#     result = await send_report("주간")
+#     return ReportResponse(response=result)
 
-@router.post("chatbot/monthly-report", response_model=ReportResponse)
-async def monthly_report():
-    result = await send_report("월간")
+# @router.post("chatbot/monthly-report", response_model=ReportResponse)
+# async def monthly_report():
+#     result = await send_report("월간")
+#     return ReportResponse(response=result)
+
+@router.post("chatbot/{report_type}-report", response_model=ReportResponse)
+async def report(report_type: str):
+    # report_type이 유효한 값인지 검사합니다.
+    valid_types = {"daily": "일간", "weekly": "주간", "monthly": "월간"}
+    if report_type not in valid_types:
+        raise HTTPException(status_code=400, detail="Invalid report type")
+
+    # report_type에 맞는 값을 send_report 함수에 전달합니다.
+    result = await send_report(valid_types[report_type])
     return ReportResponse(response=result)
