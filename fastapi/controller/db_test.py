@@ -19,13 +19,13 @@ async def test_db_connection():
 async def test_insert():
     #MongoDB에 테스트 데이터 삽입"""
     try:
-        existing_user = await users_collection.find_one({"mb_id": "test22"})
+        existing_user = await users_collection.find_one({"id": "test22"})
         if existing_user:
             return {"error": "이미 존재하는 아이디입니다."}
         
         password = "1234"
         hashed_password = hash_password(password)
-        new_user = {"mb_id":"test12", "password": hashed_password, "username":"smhrd", "userage": 20100101, "userweight":40}
+        new_user = {"id":"test123", "password": hashed_password, "username":"smhrd", "userage": 20100101, "userweight":40}
         result = await users_collection.insert_one(new_user)
         return {"message": "데이터 삽입 성공!", "inserted_id": str(result.inserted_id)}
     
@@ -36,8 +36,8 @@ async def test_insert():
 async def test_find():
     #MongoDB에서 데이터 조회"""
     try:
-        data = await users_collection.find_one({"mb_id": "test12"})
-        
+        data = await users_collection.find_one({"id": "smhrd"})
+         
         if data:
             # '_id_를 문자열로 변환하여 반환
             data["_id"] = str(data["_id"])

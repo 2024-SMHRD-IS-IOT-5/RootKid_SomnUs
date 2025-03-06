@@ -19,3 +19,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
 # 환경변수에서 문자열 "true"일 경우 True로 변환
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
+# 챗봇 서버 url
+CHATBOT_SERVER_URL = os.getenv("CHATBOT_SERVER_URL")
+

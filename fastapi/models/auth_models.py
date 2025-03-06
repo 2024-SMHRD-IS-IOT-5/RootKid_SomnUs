@@ -16,9 +16,15 @@ class ParentRegister(BaseModel):
     password: str
         
 class UserLogin(BaseModel):
+    """로그인 요청 모델"""
     id: str
     password: str
     
 class TokenResponse(BaseModel):
+    """JWT 토큰 응답 모델"""
     access_token: str
     token_type: str
+    
+class TokenData(BaseModel):
+    """JWT 토큰에서 추출한 사용자 정보 모델"""
+    user_id: str  # JWT 토큰에서 가져온 사용자 ID
