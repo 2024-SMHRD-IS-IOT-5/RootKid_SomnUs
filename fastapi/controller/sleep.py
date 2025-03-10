@@ -19,11 +19,20 @@ def format_seconds(seconds):
 def format_time(timestamp):
     return datetime.fromtimestamp(timestamp).strftime('%H:%M')
 
-@router.get("sleep-data")
+@router.get("/sleep-data")
 async def get_sleep_data(current_user : TokenData = Depends(get_current_user)):
     """현재 로그인한 사용자의 최근 수면 데이터를 조회하여 변환 후 반환"""
     user_id = current_user.user_id # TokenData 객체에서 user_id 가져오기
-    sleep_data =  await processing_sleep_collection.find_one({"user_id":user_id}, sort=[("_id",-1)])
+    sleep_data =  await processing_sleep_collection.find_one({"id":user_id}, sort=[("_id",-1)])
+ 
+# @router.get("/sleep-data")
+# async def get_sleep_data():
+#     """user_id가 'smhrd'인 사용자의 최근 수면 데이터를 조회하여 변환 후 반환"""
+#     # 토큰 검증 없이 user_id가 'smhrd'인 데이터만 필터링
+#     sleep_data = await processing_sleep_collection.find_one(
+#         {"id": "smhrd"},
+#         sort=[("_id", -1)]
+#     )   
     
     if not sleep_data:
         raise HTTPException(status_code=404, detail="수면 데이터가 없습니다.")
@@ -34,7 +43,7 @@ async def get_sleep_data(current_user : TokenData = Depends(get_current_user)):
         "endDt": format_time(sleep_data["endDt"]),
         "sleep_time": format_seconds(sleep_data["endDt"] - sleep_data["startDt"]),
         "deepsleep": format_seconds(sleep_data["deepsleepduration"]),
-        "ligtsleep": format_seconds(sleep_data["lightsleepduration"]),
+        "lightsleep": format_seconds(sleep_data["lightsleepduration"]),
         "remsleep": format_seconds(sleep_data["remsleepduration"]),
         "sleep_score": sleep_data["sleep_score"]
     }
