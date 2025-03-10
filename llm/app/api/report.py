@@ -12,6 +12,15 @@ class ReportResponse(BaseModel):
 
 # -> str : 어노테이션 : 함수가 반환할 타입 지정, 가독성 높이고 타입검사 할때 도움된대.
 async def send_report(report_type: str) -> str:
+    ### 리포트 단위기간에 따른 매서드 생성 공간.
+    ### if문으로 쉽게 구현 가능. 
+    ### if report_type = ? 로 매서드 실행
+    ### response.content를 chatbot/receive-report로 전송
+    ### 후에 db/report_repository 실행
+    
+    
+    
+    
     # 각 리포트 유형에 맞는 응답 메시지 생성
     response_text = f"{report_type} 리포트 요청에 대한 응답입니다!"
     payload = {"response": response_text}

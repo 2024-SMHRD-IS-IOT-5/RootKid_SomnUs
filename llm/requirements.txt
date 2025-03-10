@@ -8,3 +8,4 @@ langchain_openai
 motor
 langchain_core
 pydantic
+langchain.tools
