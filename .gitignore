@@ -4,3 +4,4 @@ fastapi/__pycache__/
 
 llm/.env
 메모.txt
+memo.py
