@@ -43,7 +43,11 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
+            icon: const Icon(
+              Icons.account_circle_outlined,
+              color: Colors.white,
+              size: 30,
+            ),
             onPressed: () {
               // ✅ 설정 페이지로 이동 (네비게이션 바 없이)
               Navigator.push(
@@ -55,32 +59,39 @@ class _MainNavigationState extends State<MainNavigation> {
         ],
       ),
       body: IndexedStack(index: _selectedIndex, children: _pages),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _selectedIndex,
-        selectedItemColor: const Color(0xFF141932),
-        unselectedItemColor: Colors.grey,
-        selectedLabelStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "홈"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.insert_chart_outlined),
-            label: "보고서",
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Colors.black12, width: 1.5), // ✅ 상단 검은색 선 추가
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline_outlined),
-            label: "채팅",
+        ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _selectedIndex,
+          selectedItemColor: const Color(0xFF141932),
+          unselectedItemColor: Colors.grey,
+          selectedLabelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.headphones), label: "노래"),
-        ],
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+          onTap: _onItemTapped,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "홈"),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.insert_chart_outlined),
+              label: "보고서",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline_outlined),
+              label: "채팅",
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.headphones), label: "노래"),
+          ],
+        ),
       ),
     );
   }

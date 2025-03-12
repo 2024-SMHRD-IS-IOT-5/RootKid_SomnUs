@@ -76,6 +76,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(56), // AppBar 높이 지정
         child: Container(
@@ -175,12 +176,12 @@ class _ChatPageState extends State<ChatPage> {
 
           // ✅ 메시지 입력창 & 전송 버튼
           Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.only(left: 10, right: 10, bottom: 10),
             child: Row(
               children: [
                 Expanded(
                   child: SizedBox(
-                    height: 41, // ✅ 입력창 높이 줄이기
+                    height: 40, // ✅ 입력창 높이 줄이기
                     child: TextField(
                       controller: _controller,
                       decoration: InputDecoration(
