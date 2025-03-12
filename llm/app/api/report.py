@@ -1,60 +1,109 @@
-# app/api/report.py
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import httpx
-from app.core.config import FASTAPI_SERVER_URL
+from app.core.config import FASTAPI_SERVER_URL, TEST_SERVER_URL
+from app.services.report_service import daily_report_process
+from typing import Any
+import json
+
 
 router = APIRouter()
 
 class ReportResponse(BaseModel):
     response: str
+    
 
-# -> str : 어노테이션 : 함수가 반환할 타입 지정, 가독성 높이고 타입검사 할때 도움된대.
-async def send_report(report_type: str) -> str:
-    ### 리포트 단위기간에 따른 매서드 생성 공간.
-    ### if문으로 쉽게 구현 가능. 
-    ### if report_type = ? 로 매서드 실행
-    ### response.content를 chatbot/receive-report로 전송
-    ### 후에 db/report_repository 실행
-    
-    
-    
-    
-    # 각 리포트 유형에 맞는 응답 메시지 생성
-    response_text = f"{report_type} 리포트 요청에 대한 응답입니다!"
-    payload = {"response": response_text}
-    try:
-        # 메인 서버의 /chatbot/receive-report 엔드포인트로 응답 전송
-        async with httpx.AsyncClient() as client:
-            res = await client.post(f"{FASTAPI_SERVER_URL}/chatbot/receive-report", json=payload)
-            res.raise_for_status()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"응답 전송 실패: {str(e)}")
-    return response_text
 
-# @router.post("chatbot/daily-report", response_model=ReportResponse)
-# async def daily_report():
-#     result = await send_report("일간")
-#     return ReportResponse(response=result)
 
-# @router.post("chatbot/weekly-report", response_model=ReportResponse)
+### 리포트 단위기간에 따른 매서드 생성 공간.
+### if문으로 쉽게 구현 가능. 
+### if report_type = ? 로 매서드 실행
+### response.content를 chatbot/receive-report로 전송
+### 후에 db/report_repository 실행
+
+class SleepDataModel(BaseModel):
+    sleep_data: dict[str, Any]
+    
+    
+@router.post("test")
+async def make_report(sleep_data:dict):
+    """ 메인 서버에서 받은 수면 데이터를 받아서 리포트 생성"""
+    print(sleep_data)
+    print("리포트 작성 시작!")
+    type = sleep_data["aggregation_type"]
+   
+    if type ==  "daily":
+            print("daily 함수 여기")
+        
+    elif type == "weekly":
+            print("weekly 함수 여기")
+            
+    else:
+        print("monthly 함수 여기")
+        
+
+    
+    
+    
+@router.get("/test/daily")
+def make_report_test():
+    print("test start!")
+    result = daily_report_process()
+    print(result)
+    return "리포트 멘트 생성 테스트중"
+    
+# @router.post("/daily")
+# async def daily_report_process(data : SleepDataModel):
+#     """ 메인 서버에서 받은 dict형태의 수면 데이터를 처리"""
+#     print("정상적으로 접속!")
+#     try:
+#         result = await daily_report_process(data.sleep_data)
+#         return result
+#     except Exception as e:
+#         print("ERROR:", e)
+#         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+# @router.post("/weekly", response_model=ReportResponse)
 # async def weekly_report():
+#     print("주간 요청 옴")
 #     result = await send_report("주간")
 #     return ReportResponse(response=result)
 
-# @router.post("chatbot/monthly-report", response_model=ReportResponse)
+# @router.post("/monthly", response_model=ReportResponse)
 # async def monthly_report():
 #     result = await send_report("월간")
 #     return ReportResponse(response=result)
 
-@router.post("chatbot/{report_type}-report", response_model=ReportResponse)
-async def report(report_type: str):
-    # report_type이 유효한 값인지 검사합니다.
-    valid_types = {"daily": "일간", "weekly": "주간", "monthly": "월간"}
-    if report_type not in valid_types:
-        raise HTTPException(status_code=400, detail="Invalid report type")
 
-    # report_type에 맞는 값을 send_report 함수에 전달합니다.
-    result = await send_report(valid_types[report_type])
-    return ReportResponse(response=result)
+
+
+
+
+
+
+#### 연결확인용 코드 #####
+async def process_sleep_data(sleep_data: dict):
+    """수면 데이터 처리 및 챗봇 응답 생성"""
+    print(f"📊 수면 데이터 수신: {sleep_data}")  # ✅ 수면 데이터 로그 확인
+
+    # 여기서 수면 데이터를 기반으로 분석/응답 생성 (예제)
+    sleep_score = sleep_data.get("sleep_score", 0)
+    if sleep_score > 85:
+        recommendation = "수면 점수가 높습니다! 아주 좋은 상태입니다. 😊"
+    elif sleep_score > 70:
+        recommendation = "수면 점수가 괜찮습니다. 하지만 더 건강한 수면 습관을 가져보세요. 😉"
+    else:
+        recommendation = "수면 점수가 낮습니다. 수면 환경을 개선하는 것이 좋아요. 😴"
+        
+    print(recommendation)
+
+    return {"chatbot_response": recommendation}
+
+
+@router.post("")
+async def receive_sleep_data(sleep_data: dict):
+    """FastAPI 서버에서 받은 수면 데이터를 처리"""
+    try:
+        result = await process_sleep_data(sleep_data)
+        return {"message": "수면 데이터 처리 완료", "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

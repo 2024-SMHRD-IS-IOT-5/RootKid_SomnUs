@@ -11,5 +11,5 @@ def read_root():
     return {"message" : "Hello From llm server"}
 
 app.include_router(chat_router, prefix="/chatbot/message")
-app.include_router(report_router, prefix="/chatbot/receive-report")
+app.include_router(report_router, prefix="/chatbot/report")
 app.include_router(test_router, prefix="/test")
