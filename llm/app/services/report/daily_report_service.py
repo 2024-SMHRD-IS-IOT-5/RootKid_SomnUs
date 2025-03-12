@@ -1,5 +1,4 @@
 import os
-from langchain.chains import LLMChain
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
@@ -7,52 +6,26 @@ from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, H
 dotenv_path = os.path.join(os.path.dirname(__file__), "../.env")
 load_dotenv(dotenv_path)
 api_key = os.getenv("OPENAI_API_KEY")
-
 llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=api_key)
 
-sleep_data = {
-    "_id": {
-        "$oid": "67cea2a4a46ca4a466eb7fff"
-    },
-    "id": "smhrd",
-    "date": "2025-02-24",
-    "startDt": 1598885940,
-    "endDt": 1598908800,
-    "lightsleep_duration": 8760,
-    "deepsleep_duration": 4740,
-    "wakeup_count": 1,
-    "remsleep_duration": 7440,
-    "hr_average": 70,
-    "hr_min": 58,
-    "hr_max": 94,
-    "rr_average": 15,
-    "rr_min": 12,
-    "rr_max": 23,
-    "breathing_disturbances_intensity": 8,
-    "snoring": 0,
-    "snoring_episode_count": 0,
-    "sleep_score": 61,
-    "week_number": "2025-02-W4",
-    "month_number": "2025-02"
-    }
 
 # 일간 리포트 멘트 작성 함수
-def daily_report_process():
-  """ 수면 정보를 분석하여 일간 리포에 들어갈 내용을 return"""
+async def daily_report_process(sleep_data):
+  """ 수면 정보를 분석하여 일간 리포트에 들어갈 내용을 return"""
   
   sleep_info = {
-      "date": sleep_data.get("date"),
-      "sleep_score": sleep_data.get("sleep_score"),
-      "wakeup_count": sleep_data.get("wakeup_count"),
-      "lightsleep_duration": sleep_data.get("lightsleep_duration"),
-      "deepsleep_duration": sleep_data.get("deepsleep_duration"),
-      "remsleep_duration": sleep_data.get("remsleep_duration"),
-      "breathing_disturbances_intensity": sleep_data.get("breathing_disturbances_intensity"),
+      "date": sleep_data["date"],
+      "sleep_score": sleep_data["sleep_score"],
+      "wakeup_count": sleep_data["wakeupcount"],
+      "lightsleep_duration": sleep_data["lightsleep"],
+      "deepsleep_duration": sleep_data["deepsleep"],
+      "remsleep_duration": sleep_data["remsleep"],
+      "breathing_disturbances_intensity": sleep_data["breathing_disturbances_intensity"],
   }
   
   prompt = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
-      "너는 사용자의 수면 데이터를 분석하여 리포트를 작성하는 AI 전문가야."
+      "너는 사용자의 수면 데이터를 분석하여 리포트를 작성하는 의사야."
       "데이터를 기반으로 건강한 건강한 수면습관을 키우고자 하는 청소년을 위해 친절하게 평가를 해줘."
     ),
       HumanMessagePromptTemplate.from_template(
@@ -71,4 +44,4 @@ def daily_report_process():
   chain = prompt | llm
   result = chain.invoke(sleep_info)
   
-  return result.content
+  return {"chatbot_response": result.content}

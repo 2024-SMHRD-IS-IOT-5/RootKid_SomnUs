@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.core.config import FASTAPI_SERVER_URL, TEST_SERVER_URL
-from app.services.report_service import daily_report_process
+from app.services.report.daily_report_service import daily_report_process
+from app.services.report.weekly_report_service import weekly_report_process
+from app.services.report.monthly_report_service import monthly_report_process
 from typing import Any
-import json
 
 
 router = APIRouter()
@@ -24,7 +25,7 @@ class SleepDataModel(BaseModel):
     sleep_data: dict[str, Any]
     
     
-@router.post("test")
+@router.post("")
 async def make_report(sleep_data:dict):
     """ 메인 서버에서 받은 수면 데이터를 받아서 리포트 생성"""
     print(sleep_data)
@@ -32,13 +33,17 @@ async def make_report(sleep_data:dict):
     type = sleep_data["aggregation_type"]
    
     if type ==  "daily":
-            print("daily 함수 여기")
+        result = await daily_report_process(sleep_data)
+        print(result)
+        return {"message" : "일간 리포트 작성 완료", "result": result}
         
     elif type == "weekly":
-            print("weekly 함수 여기")
-            
-    else:
-        print("monthly 함수 여기")
+        
+        return {"message": "주간 리포트 작성 완료", "result": {"summary":"나는 전설이다","significant":"얜 정상은 아님","feedback":"정신과 상담 필요"}}
+        
+    elif type == "monthly":
+        
+        return {"message": "월간 리포트 작성 완료", "result": "한달요약"}
         
 
     
@@ -99,7 +104,7 @@ async def process_sleep_data(sleep_data: dict):
     return {"chatbot_response": recommendation}
 
 
-@router.post("")
+@router.post("/test")
 async def receive_sleep_data(sleep_data: dict):
     """FastAPI 서버에서 받은 수면 데이터를 처리"""
     try:
