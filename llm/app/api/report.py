@@ -25,7 +25,7 @@ class SleepDataModel(BaseModel):
     sleep_data: dict[str, Any]
     
     
-@router.post("")
+@router.post("/chatbot/report")
 async def make_report(sleep_data:dict):
     """ 메인 서버에서 받은 수면 데이터를 받아서 리포트 생성"""
     print(sleep_data)
