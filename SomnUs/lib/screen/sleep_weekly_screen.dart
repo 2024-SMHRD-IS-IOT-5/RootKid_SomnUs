@@ -5,36 +5,30 @@ import 'package:somnus/services/auth_service.dart';
 
 // ✅ 수면 데이터 모델 정의
 class SleepData {
-  final String date;
-  final String startDt;
-  final String endDt;
-  final String sleepTime;
-  final String deepSleep;
-  final String lightSleep;
-  final String remSleep;
-  final int sleepScore;
+  final String avg_deep_sleep;
+  final String avg_light_sleep;
+  final String avg_rem_sleep;
+  final String avg_sleep_time;
+  final int avg_sleep_score;
+  final String week_number;
 
   SleepData({
-    required this.date,
-    required this.startDt,
-    required this.endDt,
-    required this.sleepTime,
-    required this.deepSleep,
-    required this.lightSleep,
-    required this.remSleep,
-    required this.sleepScore,
+    required this.avg_deep_sleep,
+    required this.avg_light_sleep,
+    required this.avg_rem_sleep,
+    required this.avg_sleep_time,
+    required this.avg_sleep_score,
+    required this.week_number,
   });
 
   factory SleepData.fromJson(Map<String, dynamic> json) {
     return SleepData(
-      date: json['date'],
-      startDt: json['startDt'],
-      endDt: json['endDt'],
-      sleepTime: json['sleep_time'],
-      deepSleep: json['deepsleep'],
-      lightSleep: json['lightsleep'],
-      remSleep: json['remsleep'],
-      sleepScore: json['sleep_score'],
+      avg_deep_sleep: json['avg_deep_sleep'].toString(),
+      avg_light_sleep: json['avg_light_sleep'].toString(),
+      avg_rem_sleep: json['avg_rem_sleep'].toString(),
+      avg_sleep_time: json['avg_sleep_time'].toString(),
+      avg_sleep_score: json['avg_sleep_score'],
+      week_number: json['week_number'].toString(),
     );
   }
 }
@@ -46,13 +40,6 @@ class SleepDataResponse {
 
   SleepDataResponse({required this.sleepData, required this.chatbotResponse});
 
-  //factory SleepDataResponse.fromJson(Map<String, dynamic> json) {
-  // return SleepDataResponse(
-  // sleepData: SleepData.fromJson(json['sleep_data']),
-  // chatbotResponse: json['chatbot_response'],
-  // );
-  // }
-  //}
   factory SleepDataResponse.fromJson(Map<String, dynamic> json) {
     final dynamic chatbotResp = json['chatbot_response'];
     String chatbotResponse =
@@ -73,7 +60,7 @@ Future<SleepDataResponse> fetchSleepData() async {
   }
 
   final response = await http.get(
-    Uri.parse('http://192.168.219.211:8001/sleep-data'),
+    Uri.parse('http://192.168.219.211:8001/sleep-data/weekly'),
     headers: {'Authorization': 'Bearer $token'},
   );
 
@@ -94,14 +81,14 @@ Future<SleepDataResponse> fetchSleepData() async {
   }
 }
 
-class SleepDataScreen extends StatefulWidget {
-  const SleepDataScreen({super.key});
+class SleepDataScreenWeekly extends StatefulWidget {
+  const SleepDataScreenWeekly({super.key});
 
   @override
   _SleepDataScreenState createState() => _SleepDataScreenState();
 }
 
-class _SleepDataScreenState extends State<SleepDataScreen> {
+class _SleepDataScreenState extends State<SleepDataScreenWeekly> {
   late Future<SleepDataResponse> futureSleepData;
 
   @override
@@ -131,10 +118,12 @@ class _SleepDataScreenState extends State<SleepDataScreen> {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('날짜: ${data.date}'),
-                  Text('수면 시간: ${data.sleepTime}'),
-                  Text('수면 점수: ${data.sleepScore}'),
-                  Text('시간: ${data.startDt} ~ ${data.endDt}'),
+                  Text('딥슬립: ${data.avg_deep_sleep}'),
+                  Text('얕은슬립: ${data.avg_light_sleep}'),
+                  Text('렘슬립: ${data.avg_rem_sleep}'),
+                  Text('시간: ${data.avg_sleep_time}'),
+                  Text('점수: ${data.avg_sleep_score}'),
+                  Text('주차: ${data.week_number}'),
                   SizedBox(height: 20),
                   Text(
                     "💬 챗봇 피드백",

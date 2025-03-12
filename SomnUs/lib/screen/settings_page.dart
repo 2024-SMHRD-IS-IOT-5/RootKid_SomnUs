@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:somnus/screen/sleep_screen.dart';
+import 'package:somnus/screen/sleep_weekly_screen.dart';
 import 'user_info_page.dart'; // 사용자 정보 페이지 import
 
 class SettingsPage extends StatefulWidget {
@@ -14,7 +15,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
   Map<String, bool> _expandedSections = {
     "알림 설정": false,
     "서비스 정보": false,
-    "결제 및 구독 관리": false,
+    "프로모션": false,
     "기록 초기화": false,
   };
 
@@ -31,7 +32,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
       appBar: AppBar(
         backgroundColor: const Color(0xFF141932),
         title: const Text(
-          "설정",
+          "마이페이지",
           style: TextStyle(
             color: Colors.white,
             fontSize: 22,
@@ -54,7 +55,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
               // ✅ 사용자 정보 (별도 페이지로 이동)
               _buildNavigationTile(
                 title: "사용자 정보",
-                subtitle: "프로필, 비밀번호 변경",
+                subtitle: "프로필, 로그아웃",
                 onTap: () {
                   Navigator.push(
                     context,
@@ -77,8 +78,8 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
               const SizedBox(height: 20),
 
               // ✅ 결제 및 구독 관리
-              _buildExpandableTile("결제 및 구독 관리", "결제 내역, 갱신/취소"),
-              _buildAnimatedExpandedContent("결제 및 구독 관리", ["현재 구독 상태", "결제 내역 확인", "구독 취소/갱신"]),
+              _buildExpandableTile("프로모션", "이벤트 및 특별 혜택"),
+              _buildAnimatedExpandedContent("프로모션", ["이벤트 확인", "관련 제품", "특별 혜택"]),
 
               const SizedBox(height: 20),
 
@@ -128,7 +129,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
               ],
             ),
             Icon(
-              _expandedSections[title]! ? Icons.expand_less : Icons.expand_more,
+              _expandedSections[title] ?? false ? Icons.expand_less : Icons.expand_more,
               size: 28,
             ),
           ],
@@ -142,7 +143,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
     return AnimatedSize(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      child: _expandedSections[section]!
+      child: (_expandedSections[section] ?? false)
           ? Padding(
         padding: const EdgeInsets.only(left: 15, top: 10),
         child: Column(
