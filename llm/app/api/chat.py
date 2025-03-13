@@ -56,11 +56,20 @@ async def chat_endpoint(payload: ChatMessageRequest):
     usertype = payload.usertype
 
     # `chat_service.py`를 호출하여 Agent 실행
-    response = process_chat(question, userid, usertype)
+    response = process_chat(question = question, user_id=userid, user_type = usertype)
 
     return {"response": response}
 
-
+# 테스트용 라우트
+@router.get("chatbot/message/test")
+async def chat_test():
+    question = input()
+    userid = "henry our hero henry"
+    usertype = "administrator"
+    
+    response = process_chat(question=question, user_id = userid, user_type=usertype)
+    print(response)
+    
 
 
 
