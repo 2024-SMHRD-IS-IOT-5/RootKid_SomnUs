@@ -1,6 +1,6 @@
 import os
 from langchain.agents import initialize_agent, AgentType
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.tools import Tool
 
 from app.tools.db_tool import query_db
@@ -10,6 +10,12 @@ from app.core.config import API_KEY
 
 
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, openai_api_key=API_KEY)
+
+fallback_tool = Tool(
+        name="Fallback Tool",
+        func = query_rag,
+        description="사용자의 질문이 어떤 도구에도 적합하지 않을 때, 기본적으로 AI가 직접 응답을 생성합니다."
+    )
 
 # Agent가 사용할 도구(Tool) 정의
 tools = [
@@ -27,8 +33,11 @@ tools = [
         name="RAG Tool",
         func=query_rag,
         description="수면 관련 일반 정보를 검색합니다. 학술 자료 등에서 정보를 가져옵니다."
-    )
+    ),
+    fallback_tool
 ]
+
+
 
 # ReAct 
 # Reasoning + Acting 으로, 

@@ -30,7 +30,6 @@ user_id, prompt가 없으면 에러 반환.
 Agent실행 결과를 return.
 
 """
-
 from fastapi import APIRouter, HTTPException
 from app.services.chat.chat_service import process_chat
 from pydantic import BaseModel
@@ -46,7 +45,7 @@ class ChatMessageResponse(BaseModel):
     response: str
 
 
-@router.post("chatbot/message", response_model=ChatMessageResponse)
+@router.post("/chatbot/message", response_model=ChatMessageResponse)
 async def chat_endpoint(payload: ChatMessageRequest):
     """
     사용자 프롬프트를 받아 Agent를 실행하고 응답을 반환하는 API 엔드포인트
@@ -59,59 +58,3 @@ async def chat_endpoint(payload: ChatMessageRequest):
     response = process_chat(question = question, user_id=userid, user_type = usertype)
 
     return {"response": response}
-
-# 테스트용 라우트
-@router.get("chatbot/message/test")
-async def chat_test():
-    question = input()
-    userid = "henry our hero henry"
-    usertype = "administrator"
-    
-    response = process_chat(question=question, user_id = userid, user_type=usertype)
-    print(response)
-    
-
-
-
-
-
-
-
-
-
-
-# ========================== 기존의 chat.py ==============================
-
-# import sys
-# import os
-# from fastapi import APIRouter, HTTPException, Request
-# from pydantic import BaseModel
-
-# from app.services.chat_service import chatbot
-# from app.db.chat_repository import save_chat
-
-# # docker가 위치 인식을 못해서 이렇게 설정해줘야 한단다.
-# # sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")  # '/app'을 경로에 추가
-
-# router = APIRouter()
-
-# class ChatMessageRequest(BaseModel):
-#     message: str
-
-# class ChatMessageResponse(BaseModel):
-#     response: str
-
-# @router.post("", response_model=ChatMessageResponse)
-# async def chat_message(request: Request, payload: ChatMessageRequest):
-#     # 클라이언트의 IP 주소를 출력
-#     client_host = request.client.host
-#     message = payload.message
-#     print("Received message from", client_host, ":", message)
-    
-#     response = chatbot(question=message)
-#     print(response)
-    
-#     # 질문, 응답 DB에 넣기
-#     await save_chat(message,response)
-    
-#     return ChatMessageResponse(response=response)

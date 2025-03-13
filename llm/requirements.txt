@@ -9,3 +9,4 @@ motor
 langchain_core
 pydantic
 langchain.tools
+langchain-community
