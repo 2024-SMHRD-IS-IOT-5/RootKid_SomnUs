@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from services.nfc_service import nfc_service
+from services.music_service import stream_music
 
 router = APIRouter()
 
@@ -13,3 +14,7 @@ async def receive_nfc_data(data: NFCData):
     if nfc_service.update_nfc_state(data.state):
         return {"message":"NFC 상태 업데이트 완료", "state": data.state}
     raise HTTPException(status_code=400, detail="NFC 상태 변경 없음") 
+
+@router.get("/stream")
+async def stream_endpoiont():
+    return await stream_music()
