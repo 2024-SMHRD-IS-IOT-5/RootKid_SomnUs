@@ -1,9 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.core.config import FASTAPI_SERVER_URL, TEST_SERVER_URL
-from app.services.report.daily_report_service import daily_report_process
-from app.services.report.weekly_report_service import weekly_report_process
-from app.services.report.monthly_report_service import monthly_report_process
 from typing import Any
 
 
@@ -32,18 +29,7 @@ async def make_report(sleep_data:dict):
     print("리포트 작성 시작!")
     type = sleep_data["aggregation_type"]
    
-    if type ==  "daily":
-        result = await daily_report_process(sleep_data)
-        print(result)
-        return {"message" : "일간 리포트 작성 완료", "result": result}
-        
-    elif type == "weekly":
-        
-        return {"message": "주간 리포트 작성 완료", "result": {"summary":"나는 전설이다","significant":"얜 정상은 아님","feedback":"정신과 상담 필요"}}
-        
-    elif type == "monthly":
-        
-        return {"message": "월간 리포트 작성 완료", "result": "한달요약"}
+    return "HI"
         
 
     
