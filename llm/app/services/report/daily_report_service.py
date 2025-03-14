@@ -16,32 +16,43 @@ async def daily_report_process(sleep_data):
   sleep_info = {
       "date": sleep_data["date"],
       "sleep_score": sleep_data["sleep_score"],
-      "wakeup_count": sleep_data["wakeupcount"],
-      "lightsleep_duration": sleep_data["lightsleep"],
-      "deepsleep_duration": sleep_data["deepsleep"],
-      "remsleep_duration": sleep_data["remsleep"],
+      "wakeup_count": sleep_data["wakeup_count"],
+      "lightsleep_duration": sleep_data["light_sleep"],
+      "deepsleep_duration": sleep_data["deep_sleep"],
+      "remsleep_duration": sleep_data["rem_sleep"],
       "breathing_disturbances_intensity": sleep_data["breathing_disturbances_intensity"],
   }
   
   prompt = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
       "너는 사용자의 수면 데이터를 분석하여 리포트를 작성하는 의사야."
-      "데이터를 기반으로 건강한 건강한 수면습관을 키우고자 하는 청소년을 위해 친절하게 평가를 해줘."
+      "데이터를 기반으로 건강한 수면습관을 키우고자 하는 청소년을 위해 친절하게 평가를 해줘."
     ),
       HumanMessagePromptTemplate.from_template(
           "오늘 날짜 {date}의 수면 데이터를 바탕으로 한줄 평가를 작성해줘.\n"
           "수면 점수: {sleep_score}\n"
           "깨어난 횟수: {wakeup_count}\n"
-          "Light 수면 지속 시간: {lightsleep_duration}초\n"
-          "Deep 수면 지속 시간: {deepsleep_duration}초\n"
-          "REM 수면 지속 시간: {remsleep_duration}초\n"
-          "호흡 장애 강도: {breathing_disturbances_intensity}\n\n"
+          "얕은 수면 지속 시간: {lightsleep_duration}초\n"
+          "깊은 수면 지속 시간: {deepsleep_duration}초\n"
+          "렘 수면 지속 시간: {remsleep_duration}초\n"
+          "호흡 곤란 횟수: {breathing_disturbances_intensity}\n\n"
           "위 데이터를 종합하여 오늘의 전반적인 수면을 한 문장으로 평가해줘.\n"
           "그리고 언급할만한 특이사항이 있다면 그것도 한 문장으로 적어줘."
       )
+      # HumanMessagePromptTemplate.from_template(
+      #     "오늘 날짜 {date}의 수면 데이터를 바탕으로 한줄 평가를 작성해줘.\n"
+      #     "수면 점수: {sleep_score}\n"
+      #     "깨어난 횟수: {wakeup_count}\n"
+      #     "얕은 수면 지속 시간: {lightsleep_duration}초\n"
+      #     "깊은 수면 지속 시간: {deepsleep_duration}초\n"
+      #     "렘 수면 지속 시간: {remsleep_duration}초\n"
+      #     "호흡 곤란 횟수: {breathing_disturbances_intensity}\n\n"
+      #     "위 데이터를 종합하여 오늘의 전반적인 수면을 한 문장으로 평가해줘.\n"
+      #     "그리고 언급할만한 특이사항이 있다면 그것도 한 문장으로 적어줘."
+      # )
     ])
   
   chain = prompt | llm
   result = chain.invoke(sleep_info)
   
-  return {"chatbot_response": result.content}
+  return result.content

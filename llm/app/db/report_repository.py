@@ -5,3 +5,15 @@
 ### 데이터 형태는 db.보고서.insertOne({ content: [Array<stirng>] startDate: new “Date”, endDate: “Date”,});
 ### 일간 : .Today (Date)   주간 : n월m주차 (String)    월간 : n월(String)
 ### 각각 단위기간, 맨트, 시작일자, 종료일자. endDate는 일간일 경우엔 null로 처리.
+from app.db.database import db
+
+async def save_report(id, date, comment, timestamp, type):
+    report_data = {
+        "id" : id,
+        "date" : date,
+        "comment" : comment,
+        "timestamp" : timestamp,
+        "type" : type
+    }
+    insert_result = await db["reports"].insert_one(report_data)
+    print("report 저장! ID: ", insert_result.inserted_id)
