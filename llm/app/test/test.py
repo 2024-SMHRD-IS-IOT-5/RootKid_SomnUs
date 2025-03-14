@@ -1,4 +1,5 @@
 from app.db.chat_repository import save_chat
+from app.test.weekly import weekly_data_test
 from fastapi import APIRouter
 from app.db.database import db
 
@@ -14,6 +15,12 @@ async def dbtest():
     insert_result = await db.chat.insert_one(test_data)
     print ("insert 성공! ID: ", insert_result.inserted_id)
     return "DB 테스트"
+
+@router.get("/weekly")
+async def weeklytest():
+    result = await weekly_data_test()
+    print(result)
+    return("weekly data finding")
     
 
 # async def insert_test():
@@ -34,4 +41,3 @@ async def dbtest():
 #         loop = asyncio.new_event_loop()
 #         asyncio.set_event_loop(loop)    
 #     loop.run_until_complete(insert_test())
-

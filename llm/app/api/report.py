@@ -38,6 +38,7 @@ async def make_report(sleep_data:dict):
         return {"message" : "일간 리포트 작성 완료", "result": result}
         
     elif type == "weekly":
+        result = await daily_report_process(sleep_data)
         
         return {"message": "주간 리포트 작성 완료", "result": {"summary":"나는 전설이다","significant":"얜 정상은 아님","feedback":"정신과 상담 필요"}}
         
