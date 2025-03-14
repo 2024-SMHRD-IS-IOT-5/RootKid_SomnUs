@@ -21,9 +21,11 @@ async def dbtest():
 # 테스트용 라우트
 @router.get("/chatbot")
 async def chat_test():
-    question = input()
-    userid = "henry our hero henry"
+    print("챗봇 테스트 시작")
+    question = "나 이번주는 수면점수 평균이 얼마야?"
+    userid = "smhrd"
     usertype = "administrator"
     
     response = process_chat(question=question, user_id = userid, user_type=usertype)
     print(response)
+    return {"message":"chatbot testing"}

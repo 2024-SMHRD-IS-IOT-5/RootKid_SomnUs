@@ -38,8 +38,8 @@ router = APIRouter()
 
 class ChatMessageRequest(BaseModel):
     message: str
-    userid: str
-    usertype: str
+    # userid: str
+    # usertype: str
     
 class ChatMessageResponse(BaseModel):
     response: str
@@ -51,10 +51,13 @@ async def chat_endpoint(payload: ChatMessageRequest):
     사용자 프롬프트를 받아 Agent를 실행하고 응답을 반환하는 API 엔드포인트
     """
     question = payload.message
-    userid = payload.userid
-    usertype = payload.usertype
+    # userid = payload.userid
+    user_id = "smhrd"
+    # usertype = payload.usertype
+    usertype = "학생"
+    
 
     # `chat_service.py`를 호출하여 Agent 실행
-    response = process_chat(question = question, user_id=userid, user_type = usertype)
+    response = await process_chat(question = question, user_id=user_id, user_type = usertype)
 
     return {"response": response}
