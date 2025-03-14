@@ -4,6 +4,7 @@ import 'package:somnus/screen/report_page.dart';
 import 'package:somnus/screen/chat_page.dart';
 import 'package:somnus/screen/sleepmusic.dart';
 import 'package:somnus/screen/settings_page.dart'; // ✅ 설정 페이지 import
+import 'package:intl/intl.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -13,14 +14,24 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
+  late final List<Widget> _pages;
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    const HomePage(),
-    const ReportPage(),
-    const ChatPage(),
-    const SleepMusicScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+
+    // ✅ 런타임에서 날짜를 설정
+    String todayDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
+
+    _pages = [
+      const HomePage(),
+      ReportPage(date: todayDate), // ✅ 오늘 날짜 자동 설정
+      const ChatPage(),
+      const SleepMusicScreen(),
+    ];
+  }
+
 
   void _onItemTapped(int index) {
     setState(() {

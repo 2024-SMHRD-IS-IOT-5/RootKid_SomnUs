@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:somnus/screen/sleep_screen.dart';
-import 'package:somnus/screen/sleep_weekly_screen.dart';
+import 'package:somnus/model/sleep_daily_data.dart';
+import 'package:somnus/model/sleep_weekly_data.dart';
 import 'user_info_page.dart'; // 사용자 정보 페이지 import
 
 class SettingsPage extends StatefulWidget {
@@ -59,7 +59,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SleepDataScreen()),
+                    MaterialPageRoute(builder: (context) => WeeklySleepDataScreen()),
                   );
                 },
               ),
