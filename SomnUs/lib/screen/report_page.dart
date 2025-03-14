@@ -1,232 +1,484 @@
 import 'package:flutter/material.dart';
-import 'package:somnus/screen/sleep_screen.dart';
-// 여기서 fetchSleepData(), SleepData, SleepDataResponse 가져옴
-// 필요하다면 Syncfusion Charts 등의 라이브러리 import 가능
+import 'package:flutter/rendering.dart';
+import 'package:intl/intl.dart';
+import 'package:somnus/model/sleep_daily_data.dart';
+import 'package:somnus/model/sleep_weekly_data.dart';
+import 'package:somnus/screen/sleep_weekly_screen.dart';
+import 'package:somnus/services/auth_service.dart';
+import 'package:fl_chart/fl_chart.dart';
+
 
 class ReportPage extends StatefulWidget {
-  const ReportPage({Key? key}) : super(key: key);
+  final String date;
+  const ReportPage({Key? key, required this.date}) : super(key:key);
 
   @override
   State<ReportPage> createState() => _ReportPageState();
 }
 
 class _ReportPageState extends State<ReportPage> {
-  late Future<SleepDataResponse> futureReportData;
-  String _selectedTab = "일"; // ✅ 기본 탭은 '일'
+  late DateTime selectedDate; // 초기 날짜
+  String selectedReportType = "일"; // 기본값: 일간 보고서
+  late ScrollController _scrollController;
+  bool _isAppBarVisible = true;
+
+
+  late Future<DailySleepDataResponse> futureSleepData; // ✅ sleep_screen.dart에서 API 호출
+
+
 
   @override
   void initState() {
     super.initState();
-    // ✅ sleep_screen.dart에 정의된 함수 사용
-    futureReportData = fetchSleepData();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+    // ✅ API 요청을 초기 날짜에 맞춰서 수행
+    futureSleepData = fetchDailySleepData(widget.date);
+    selectedDate = DateFormat("yyyy-MM-dd").parse(widget.date);
+    // 초기날짜를 위젯의 date값으로 설정
+    String dateStr = DateFormat("yyyy-MM-dd").format(selectedDate);
   }
 
-  // **(1) 일/주/월 버튼**
-  Widget _buildTabButtons() {
-    // 탭 목록
-    final tabs = ["일", "주", "월"];
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.userScrollDirection ==
+        ScrollDirection.reverse) {
+      if (_isAppBarVisible) {
+        setState(() {
+          _isAppBarVisible = false;
+        });
+      }
+    } else if (_scrollController.position.userScrollDirection ==
+            ScrollDirection.forward ||
+        _scrollController.position.pixels <= 50) {
+      if (!_isAppBarVisible) {
+        setState(() {
+          _isAppBarVisible = true;
+        });
+      }
+    }
+  }
+  /// ✅ 날짜 변경 (일간))
+  void _changeDate(int offset) {
+    setState(() {
+      selectedDate = selectedDate.add(Duration(days: offset));
+      String dateStr = DateFormat("yyyy-MM-dd").format(selectedDate);
+      futureSleepData = fetchDailySleepData(dateStr); // ✅ 날짜 변경 후 API 다시 호출
+    });
+  }
+  //
+  // // ✅ API에서 받은 날짜를 DateTime으로 변환하는 함수
+  // DateTime parseApiDate(String dateString) {
+  //   try {
+  //     return DateFormat("yyyy년 MM월 dd일", "ko_KR").parse(dateString);
+  //   } catch (e) {
+  //     // 변환 실패 시 기본값 반환 (현재 날짜)
+  //     return DateTime.now();
+  //   }
+  // }
+
+
+  // ✅ 오전/오후를 구분하여 HH:MM 형식으로 변환
+  String formatTime(String time) {
+    List<String> parts = time.split(":");
+    int hours = int.parse(parts[0]);
+    int minutes = int.parse(parts[1]);
+
+    // 오전/오후 구분
+    String period = hours < 12 ? "오전" : "오후";
+
+    // 12시간제 변환 (12시는 그대로 유지)
+    int displayHours = hours % 12 == 0 ? 12 : hours % 12;
+
+    // HH:MM 형식으로 반환
+    return "$period ${displayHours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}";
+  }
+
+// ✅ 초(seconds)를 분(minutes)으로 변환하여 "MM분" 형식으로 출력
+  String formatSecondsToMinutes(String seconds) {
+    int sec = int.parse(seconds);
+    int minutes = (sec / 60).floor();
+
+    // 2자리로 맞추기
+    return minutes.toString().padLeft(2, '0') + "분";
+  }
+
+  // 수면 시간 그래프에 나타내기 위해 소수점으로 변경
+  double parseSleepTime(String timeString) {
+    RegExp regex = RegExp(r'(\d+)시간\s*(\d*)분*');
+    Match? match = regex.firstMatch(timeString);
+
+    if (match != null) {
+      double hours = double.parse(match.group(1) ?? "0");
+      double minutes =
+          match.group(2)?.isNotEmpty == true
+              ? double.parse(match.group(2)!) / 60.0
+              : 0.0;
+      return hours + minutes;
+    }
+    return 0.0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String formattedDate = DateFormat("M월 d일 EEEE", "ko_KR").format(selectedDate);
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: _isAppBarVisible ? 60 : 0,
+            child: _buildReportTypeSelector(),
+          ),
+          Expanded(
+            child: FutureBuilder<DailySleepDataResponse>(
+              future: futureSleepData,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('에러: ${snapshot.error}'));
+                } else if (!snapshot.hasData) {
+                  return const Center(child: Text('수면 데이터 없음'));
+                }
+
+                final DailySleepData data = snapshot.data!.sleepData;
+                final String chatbotResponse = snapshot.data!.chatbotResponse;
+                selectedDate = DateFormat("yyyy년 MM월 dd일", "ko_KR").parse(data.date); // API에서 받은 날짜 적용
+
+                return SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (selectedReportType == "일") _buildDateSelector(formattedDate),
+                      const SizedBox(height: 20),
+                      _buildSelectedReport(data, chatbotResponse),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// **📌 상단 '일 / 주 / 월' 선택 버튼 (고정)**
+  Widget _buildReportTypeSelector() {
+    final reportTypes = ["일", "주", "월"];
+    return Container(
+      width: double.infinity,
+      height: 60,
+      color: Colors.white,
+      child: Center(
+        child: Container(
+          width: 200,
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color(0xFF141932),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children:
+                reportTypes.map((type) {
+                  final bool isSelected = (type == selectedReportType);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedReportType = type;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 6,
+                        horizontal: 18,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected
+                                ? Colors.white.withOpacity(0.2)
+                                : Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        type,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// **📌 날짜 선택 버튼 (이전/다음 날짜 이동)**
+  Widget _buildDateSelector(String formattedDate) {
+    String formattedDate = DateFormat(
+      "M월 d일 EEEE",
+      "ko_KR",
+    ).format(selectedDate);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: tabs.map((tab) {
-        final bool isSelected = (tab == _selectedTab);
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedTab = tab;
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 20),
-            margin: const EdgeInsets.symmetric(horizontal: 5),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF141932) : Colors.grey.shade400,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              tab,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  // **(2) 날짜/요일 표시**
-  Widget _buildDateInfo(SleepData data) {
-    // 예시: "2월 12일 월요일" → 실제로는 date에 맞춰 요일 계산 필요
-    // 여기서는 임시로 data.date가 "2025-02-12" 형태라고 가정
-    // 예시: "2025-02-12"
-    // 간단히 substring해서 "2월 12일"만 표시하거나,
-    // DateTime 파싱 후 weekday에 따라 "월/화/수" 매핑
-
-    // 임시 예시 파싱:
-    final dateStr = data.date; // "2025.02.09" 형태라면...
-    // 실제 로직: dateStr.split('.') → [2025, 02, 09]
-    // 요일 계산은 DateTime.parse("2025-02-09") 사용
-
-    return Column(
       children: [
-        Text(
-          // 예시: "2월 12일 월요일"
-          // 실제로는 날짜 파싱 로직 필요
-          dateStr.replaceAll("-", ".") + " (가상 요일)",
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        IconButton(
+          icon: const Icon(Icons.chevron_left, size: 30),
+          onPressed: () => _changeDate(-1),
         ),
         Text(
-          // ex) "REM 수면 5시간 2분", "얕은 수면 3시간 20분" ...
-          // 여기서는 임시로 startDt ~ endDt 만 표시
-          "${data.startDt} ~ ${data.endDt}",
-          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+          formattedDate,
+          style: TextStyle(
+            color: Colors.grey.shade700,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.chevron_right, size: 30),
+          onPressed: () => _changeDate(1),
         ),
       ],
     );
   }
 
-  // **(3) 수면 세부 데이터 (REM/얕은/깊은/일어난 시간 등)**
-  Widget _buildSleepDetails(SleepData data) {
+  /// **📌 선택된 보고서에 따라 적절한 화면 표시**
+  Widget _buildSelectedReport(DailySleepData data, String chatbotResponse) {
+    switch (selectedReportType) {
+      case "일":
+        return _buildDailyReport(data, chatbotResponse);
+      case "주":
+        return FutureBuilder<WeeklySleepDataResponse>(
+          future: fetchWeeklySleepData(), // ✅ 주간 데이터 API 호출
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('에러 발생: ${snapshot.error}'));
+            } else if (!snapshot.hasData) {
+              return const Center(child: Text("수면 데이터 없음"));
+            }
+
+            WeeklySleepData sleepData = snapshot.data!.sleepData; // ✅ 데이터 가져오기
+            return WeeklySleepChart(data : sleepData); // ✅ `WeeklySleepScreen`을 사용
+          },
+        );
+      case "월":
+        return const Center(child: Text("월간 보고서 페이지 (추후 구현 필요)"));
+      default:
+        return _buildDailyReport(data, chatbotResponse);
+    }
+  }
+
+
+  /// **📌 일간 보고서**
+  Widget _buildDailyReport(DailySleepData data, String chatbotResponse) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 예시: "REM 수면: 5시간 2분" → data.remSleep
-        Text("REM 수면: ${data.remSleep}", style: const TextStyle(fontSize: 16)),
-        Text("얕은 수면: ${data.lightSleep}", style: const TextStyle(fontSize: 16)),
-        Text("깊은 수면: ${data.deepSleep}", style: const TextStyle(fontSize: 16)),
-        // 일어난 시간: endDt
-        Text("일어난 시간: ${data.endDt}", style: const TextStyle(fontSize: 16)),
         const SizedBox(height: 10),
+        _buildSleepStats(data),
+        const SizedBox(height: 30),
+        _buildSleepCharts(data),
+        const SizedBox(height: 30),
+        _buildAdditionalMetrics(data, chatbotResponse),
+        const SizedBox(height: 30),
       ],
     );
   }
 
-  // **(4) 원형 그래프 2개 (수면시간, 수면점수) → Placeholder**
-  Widget _buildCircleGraphs(SleepData data) {
-    // data.sleepTime 예: "9시간 11분"
-    // data.sleepScore 예: 80
+  /// **📌 주간 보고서**
+  Widget _buildWeeklyReport() {
+    return const WeeklySleepDataScreen();
+  }
+
+  /// **📌 월간 보고서 (추후 구현)**
+  Widget _buildMonthlyReport() {
+    return const Center(child: Text("월간 보고서 페이지 (추후 구현 필요)"));
+  }
+
+  /// **📌 수면 데이터 박스**
+  Widget _buildSleepStats(DailySleepData data) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: _boxDecoration(),
+      child: Column(
+        children: [
+          _buildStatRow("REM 수면", data.remSleep),
+          _divider(),
+          _buildStatRow("얕은 수면", data.lightSleep),
+          _divider(),
+          _buildStatRow("깊은 수면", data.deepSleep),
+          _divider(),
+          _buildStatRow("일어난 시간", formatTime(data.endDt)),
+          _divider(),
+          _buildStatRow("잠든 시간", formatTime(data.startDt)),
+        ],
+      ),
+    );
+  }
+
+  /// **📌 원형 그래프**
+  Widget _buildSleepCharts(DailySleepData data) {
+    double sleepValue = parseSleepTime(data.sleepTime);
+    sleepValue =
+        sleepValue.isNaN || sleepValue.isInfinite ? 0.0 : sleepValue; // 예외 처리
+
+    double sleepScoreValue = (data.sleepScore ?? 0).toDouble(); // null 방지
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // (좌) 수면시간 원형
-        Column(
-          children: [
-            // 원형 placeholder
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                const CircleAvatar(radius: 40, backgroundColor: Colors.grey),
-                Text(data.sleepTime, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 5),
-            const Text("수면 시간", style: TextStyle(fontSize: 14)),
-          ],
+        _buildSleepScoreChart(
+          "수면 시간",
+          data.sleepTime,
+          ((sleepValue / 10) * 100).toInt(),
+          const Color(0xFF141932),
         ),
-        // (우) 수면점수 원형
-        Column(
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                const CircleAvatar(radius: 40, backgroundColor: Colors.grey),
-                Text("${data.sleepScore}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 5),
-            const Text("수면 점수", style: TextStyle(fontSize: 14)),
-          ],
+        _buildSleepScoreChart(
+          "수면 점수",
+          "${data.sleepScore}점",
+          sleepScoreValue.toInt(),
+          const Color(0xFF141932),
         ),
       ],
     );
   }
 
-  // **(5) 추가 측정 항목 예시 (심박수, 코골이, 호흡수) → 임시 Placeholder**
-  Widget _buildExtraData() {
-    // 실제 data 모델에 없는 항목이라 Placeholder
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: const [
-        Text("심박수: 58bpm", style: TextStyle(fontSize: 16)),
-        Text("코골이: 21분", style: TextStyle(fontSize: 16)),
-        Text("호흡수: 10회", style: TextStyle(fontSize: 16)),
+  /// **📌 원형 그래프 UI**
+  Widget _buildSleepScoreChart(
+    String label,
+    String value,
+    int percentage,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: 100,
+              height: 100,
+              child: CircularProgressIndicator(
+                value: percentage / 100,
+                strokeWidth: 8,
+                backgroundColor: Colors.grey.shade300,
+                color: color,
+              ),
+            ),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontSize: 14)),
       ],
     );
   }
 
-  // **(6) 특이사항 종합 (챗봇 응답)**
-  Widget _buildChatbotFeedback(String chatbotResponse) {
+  /// **📌 심박수, 코골이, 호흡수 + 특이사항 추가**
+  Widget _buildAdditionalMetrics(DailySleepData data, String chatbotResponse) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(15),
+          decoration: _boxDecoration(),
+          child: Column(
+            children: [
+              _buildStatRow("평균 심박수", "${data.hr_average} bpm"),
+              _divider(),
+              _buildStatRow("분당 호흡수", "${data.rr_average}회"),
+              _divider(),
+              _buildStatRow("코골이", formatSecondsToMinutes(data.snoring)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _buildChatbotComment(chatbotResponse),
+      ],
+    );
+  }
+
+  /// **📌 특이사항 종합 (챗봇 코멘트)**
+  Widget _buildChatbotComment(String comment) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black.withOpacity(0.2)),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        "특이사항 종합:\n\n$chatbotResponse",
-        style: const TextStyle(fontSize: 16),
-      ),
-    );
-  }
+      decoration: _boxDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 제목 (✔ 아이콘 포함)
+          Row(
+            children: [
+              const Icon(Icons.check, color: Colors.black, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                "특이사항 종합",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
 
-  // **(7) 전체 UI 구성**
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      // AppBar, BottomNavigationBar는 이미 MainNavigation에서 고정된다고 가정
-      body: FutureBuilder<SleepDataResponse>(
-        future: futureReportData,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("에러: ${snapshot.error}"));
-          } else if (!snapshot.hasData) {
-            return const Center(child: Text("데이터가 없습니다."));
-          }
-
-          final SleepDataResponse responseData = snapshot.data!;
-          final SleepData data = responseData.sleepData;
-          final String chatbotResponse = responseData.chatbotResponse;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // (1) 일/주/월 버튼
-                _buildTabButtons(),
-                const SizedBox(height: 20),
-
-                // (2) 날짜/요일
-                _buildDateInfo(data),
-                const SizedBox(height: 20),
-
-                // (3) 세부 데이터
-                _buildSleepDetails(data),
-                const SizedBox(height: 10),
-
-                // (4) 원형 그래프 2개 (수면시간 / 수면점수)
-                _buildCircleGraphs(data),
-                const SizedBox(height: 20),
-
-                // (5) 추가 항목 예시
-                _buildExtraData(),
-                const SizedBox(height: 20),
-
-                // (6) 특이사항 종합 (챗봇 응답)
-                _buildChatbotFeedback(chatbotResponse),
-              ],
-            ),
-          );
-        },
+          // 챗봇 응답 내용
+          Text(
+            comment,
+            style: const TextStyle(fontSize: 14, color: Colors.black),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _buildStatRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _divider() => Divider(color: Colors.black.withOpacity(0.2));
+
+  BoxDecoration _boxDecoration() => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(color: Colors.black.withOpacity(0.2)),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.2),
+        blurRadius: 4,
+        offset: const Offset(2, 2),
+      ),
+    ],
+  );
 }

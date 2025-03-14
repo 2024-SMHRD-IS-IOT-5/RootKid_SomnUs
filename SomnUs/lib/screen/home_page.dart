@@ -1,249 +1,15 @@
-// import 'package:flutter/material.dart';
-// import 'package:syncfusion_flutter_charts/charts.dart';
-//
-// class HomePage extends StatelessWidget {
-//   const HomePage({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.white,
-//       body: SingleChildScrollView(
-//         child: Padding(
-//           padding: const EdgeInsets.all(20.0),
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               // ✅ 오늘의 수면 요약
-//               const SleepSummaryWidget(),
-//               const SizedBox(height: 30),
-//
-//               // ✅ 수면 점수 피드백
-//               _buildFeedbackCard(),
-//               const SizedBox(height: 30),
-//
-//               // ✅ 수면 분석 및 통계 (바 차트)
-//               const Text("수면 분석 및 통계", style: _titleStyle),
-//               const SizedBox(height: 10),
-//               _buildSleepBarChart(),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-//
-//   // 📌 수면 분석 차트 (Placeholder)
-//   Widget _buildSleepBarChart() {
-//     return Container(
-//       width: double.infinity,
-//       height: 250,
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(10),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.3),
-//             blurRadius: 4,
-//             offset: const Offset(2, 2),
-//           ),
-//         ],
-//       ),
-//       child: const Center(
-//         child: Text(
-//           "📊 수면 분석 차트 (Bar Chart) 들어갈 자리",
-//           style: TextStyle(color: Colors.grey, fontSize: 14),
-//         ),
-//       ),
-//     );
-//   }
-//
-//   // 📌 피드백 카드
-//   Widget _buildFeedbackCard() {
-//     return Container(
-//       width: double.infinity,
-//       padding: const EdgeInsets.all(15),
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(10),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.3),
-//             blurRadius: 4,
-//             offset: const Offset(2, 2),
-//           ),
-//         ],
-//       ),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Row(
-//             children: [
-//               const Text(
-//                 "Somnus",
-//                 style: TextStyle(
-//                   fontSize: 16,
-//                   fontWeight: FontWeight.bold,
-//                   color: Colors.black,)),
-//               const SizedBox(width: 5),
-//               const Icon(Icons.feedback_outlined, color: Colors.black, size: 22),
-//             ],
-//           ),
-//           const SizedBox(height: 10),
-//           const Text(
-//             "수면점수가 80점이네요! 최고의 컨디션! 지금처럼 꾸준히 유지하면 건강한 수면 습관을 가질 수 있어요! 💪",
-//             style: TextStyle(fontSize: 14, color: Colors.black),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-//
-//   // 📌 공통 스타일
-//   static const TextStyle _titleStyle = TextStyle(
-//     fontSize: 16,
-//     fontWeight: FontWeight.bold,
-//     color: Colors.black,
-//   );
-// }
-//
-// // -----------------------------------------------------------
-// // ✅ 도넛형 수면 요약 차트 위젯 (하단 20% 비우기)
-// // -----------------------------------------------------------
-// class SleepSummaryWidget extends StatelessWidget {
-//   const SleepSummaryWidget({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: [
-//         const Text(
-//           "오늘의 수면 요약",
-//           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-//         ),
-//         const SizedBox(height: 10),
-//         Row(
-//           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//           children: [
-//             _buildSleepDurationChart(),
-//             _buildSleepScoreChart(),
-//           ],
-//         ),
-//       ],
-//     );
-//   }
-//
-//   // 📌 수면 시간 도넛형 차트
-//   Widget _buildSleepDurationChart() {
-//     return Stack(
-//       alignment: Alignment.center,
-//       children: [
-//         SizedBox(
-//           width: 180,
-//           height: 180,
-//           child: SfCircularChart(
-//             series: <CircularSeries>[
-//               DoughnutSeries<_ChartData, String>(
-//                 dataSource: [
-//                   _ChartData("수면", 80, Colors.blue),
-//                   _ChartData("남은 부분", 20, Colors.grey.shade300),
-//                 ],
-//                 xValueMapper: (_ChartData data, _) => data.category,
-//                 yValueMapper: (_ChartData data, _) => data.value,
-//                 pointColorMapper: (_ChartData data, _) => data.color,
-//                 innerRadius: "70%",
-//                 startAngle: 216,
-//                 endAngle: 504,
-//               ),
-//             ],
-//           ),
-//         ),
-//         Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             const Icon(Icons.nightlight_sharp, color: Colors.blue, size: 30),
-//             const SizedBox(height: 1),
-//             const Text(
-//               "9시간 11분",
-//               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-//             ),
-//             const Text(
-//               "00:13 ~ 09:24",
-//               style: TextStyle(fontSize: 12, color: Colors.grey),
-//             ),
-//           ],
-//         ),
-//       ],
-//     );
-//   }
-//
-//   // 📌 수면 점수 도넛형 차트
-//   Widget _buildSleepScoreChart() {
-//     return Stack(
-//       alignment: Alignment.center,
-//       children: [
-//         SizedBox(
-//           width: 180,
-//           height: 180,
-//           child: SfCircularChart(
-//             series: <CircularSeries>[
-//               DoughnutSeries<_ChartData, String>(
-//                 dataSource: [
-//                   _ChartData("수면 점수", 80, Colors.green),
-//                   _ChartData("남은 부분", 20, Colors.grey.shade300),
-//                 ],
-//                 xValueMapper: (_ChartData data, _) => data.category,
-//                 yValueMapper: (_ChartData data, _) => data.value,
-//                 pointColorMapper: (_ChartData data, _) => data.color,
-//                 innerRadius: "70%",
-//                 startAngle: 216,
-//                 endAngle: 504,
-//               ),
-//             ],
-//           ),
-//         ),
-//         Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             const Text("😀", style: TextStyle(fontSize: 24)),
-//             const SizedBox(height: 1),
-//             const Text(
-//               "좋음",
-//               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green),
-//             ),
-//             const SizedBox(height: 1),
-//             const Text("수면점수", style: TextStyle(fontSize: 12, color: Colors.grey)),
-//             const SizedBox(height: 1),
-//             const Text(
-//               "80점",
-//               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-//             ),
-//           ],
-//         ),
-//       ],
-//     );
-//   }
-// }
-//
-// // ✅ 도넛형 차트를 위한 데이터 모델
-// class _ChartData {
-//   final String category;
-//   final double value;
-//   final Color color;
-//
-//   _ChartData(this.category, this.value, this.color);
-// }
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:http/http.dart' as http;
-import 'package:somnus/screen/sleep_screen.dart';
+import 'package:somnus/model/sleep_today_data.dart';
 import 'package:somnus/services/auth_service.dart';
+import 'package:somnus/screen/report_page.dart';
+import 'package:intl/intl.dart';
 
 // ✅ API에서 데이터 가져오기
-Future<SleepDataResponse> fetchSleepData() async {
+Future<DailySleepDataResponse> fetchDailySleepData() async {
   String? token = AuthService().getToken();
 
   if (token == null) {
@@ -258,7 +24,7 @@ Future<SleepDataResponse> fetchSleepData() async {
   if (response.statusCode == 200) {
     final decodeBody = utf8.decode(response.bodyBytes);
     final Map<String, dynamic> jsonResponse = json.decode(decodeBody);
-    return SleepDataResponse.fromJson(jsonResponse);
+    return DailySleepDataResponse.fromJson(jsonResponse);
   } else {
     throw Exception("수면 데이터를 불러오는데 실패했습니다.");
   }
@@ -272,19 +38,20 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Future<SleepDataResponse> futureSleepData;
+  late Future<DailySleepDataResponse> futureSleepData;
+  DateTime selectedMonth = DateTime(2025, 2, 1);
 
   @override
   void initState() {
     super.initState();
-    futureSleepData = fetchSleepData();
+    futureSleepData = fetchDailySleepData();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: FutureBuilder<SleepDataResponse>(
+      body: FutureBuilder<DailySleepDataResponse>(
         future: futureSleepData,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -296,7 +63,7 @@ class _HomePageState extends State<HomePage> {
           }
 
           // ✅ API 데이터 할당
-          SleepData data = snapshot.data!.sleepData;
+          DailySleepData data = snapshot.data!.sleepData;
           String chatbotComment = snapshot.data!.chatbotResponse;
 
           return SingleChildScrollView(
@@ -311,7 +78,13 @@ class _HomePageState extends State<HomePage> {
                     sleepScore: data.sleepScore,
                     chatbotComment: chatbotComment,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 30),
+
+                  const Text(
+                    "수면 분석 및 통계",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
 
                   // ✅ 수면 분석 및 통계
                   _buildSleepStats(data),
@@ -329,7 +102,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // 📌 수면 기록 테이블
-  Widget _buildSleepStats(SleepData data) {
+  Widget _buildSleepStats(DailySleepData data) {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -372,7 +145,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // 📌 수면 캘린더
+  // 📌 수면 캘린더 (월 변경 가능)
   Widget _buildSleepCalendar() {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -389,19 +162,65 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Column(
         children: [
-          const Text(
-            "2025.02",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          // 📌 상단 월 변경 버튼
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => _changeMonth(-1),
+              ),
+              Text(
+                "${selectedMonth.year}.${selectedMonth.month.toString().padLeft(2, '0')}",
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => _changeMonth(1),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
-          _buildCalendarGrid(),
+
+          // 📌 캘린더 위젯 (날짜 선택 시 보고서 페이지로 이동)
+          SfDateRangePicker(
+            view: DateRangePickerView.month,
+            selectionMode: DateRangePickerSelectionMode.single,
+            initialSelectedDate: selectedMonth,
+            onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+              if (args.value is DateTime) {
+                String selectedDate = DateFormat("yyyy-MM-dd").format(args.value);
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReportPage(date: selectedDate),
+                  ),
+                );
+              }
+            },
+            onViewChanged: (DateRangePickerViewChangedArgs args) {
+              setState(() {
+                if (args.visibleDateRange.startDate != null) {
+                  selectedMonth = DateTime(
+                    args.visibleDateRange.startDate!.year,
+                    args.visibleDateRange.startDate!.month,
+                    1,
+                  );
+                }
+              });
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCalendarGrid() {
-    return const Center(child: Text("📅 캘린더 표시 예정"));
+  // 📌 월 변경 함수
+  void _changeMonth(int offset) {
+    setState(() {
+      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + offset, 1);
+    });
   }
 }
 

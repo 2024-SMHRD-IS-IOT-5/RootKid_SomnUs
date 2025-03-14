@@ -1,141 +1,182 @@
-import 'dart:convert';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:somnus/services/auth_service.dart';
+import 'package:somnus/model/sleep_weekly_data.dart';
 
-// ✅ 수면 데이터 모델 정의
-class SleepData {
-  final String avg_deep_sleep;
-  final String avg_light_sleep;
-  final String avg_rem_sleep;
-  final String avg_sleep_time;
-  final int avg_sleep_score;
-  final String week_number;
+class WeeklySleepChart extends StatelessWidget {
+  final WeeklySleepData data;
 
-  SleepData({
-    required this.avg_deep_sleep,
-    required this.avg_light_sleep,
-    required this.avg_rem_sleep,
-    required this.avg_sleep_time,
-    required this.avg_sleep_score,
-    required this.week_number,
-  });
-
-  factory SleepData.fromJson(Map<String, dynamic> json) {
-    return SleepData(
-      avg_deep_sleep: json['avg_deep_sleep'].toString(),
-      avg_light_sleep: json['avg_light_sleep'].toString(),
-      avg_rem_sleep: json['avg_rem_sleep'].toString(),
-      avg_sleep_time: json['avg_sleep_time'].toString(),
-      avg_sleep_score: json['avg_sleep_score'],
-      week_number: json['week_number'].toString(),
-    );
-  }
-}
-
-// ✅ 챗봇 응답을 포함한 모델
-class SleepDataResponse {
-  final SleepData sleepData;
-  final String chatbotResponse;
-
-  SleepDataResponse({required this.sleepData, required this.chatbotResponse});
-
-  factory SleepDataResponse.fromJson(Map<String, dynamic> json) {
-    final dynamic chatbotResp = json['chatbot_response'];
-    String chatbotResponse =
-        chatbotResp is String ? chatbotResp : jsonEncode(chatbotResp);
-    return SleepDataResponse(
-      sleepData: SleepData.fromJson(json['sleep_data']),
-      chatbotResponse: chatbotResponse,
-    );
-  }
-}
-
-// ✅ API 호출 함수 (AuthService에서 토큰 가져오기)
-Future<SleepDataResponse> fetchSleepData() async {
-  String? token = AuthService().getToken(); // ✅ 로그인된 토큰 가져오기
-
-  if (token == null) {
-    throw Exception("로그인이 필요합니다.");
-  }
-
-  final response = await http.get(
-    Uri.parse('http://192.168.219.211:8001/sleep-data/weekly'),
-    headers: {'Authorization': 'Bearer $token'},
-  );
-
-  if (response.statusCode == 200) {
-    // 한글 깨짐 방지(UTF-8 디코딩 적용)
-    final decodeBody = utf8.decode(response.bodyBytes);
-    final Map<String, dynamic> jsonResponse = json.decode(decodeBody);
-
-    // ✅ 챗봇 응답을 result에서 가져오기
-    String chatbotResponse = jsonResponse['chatbot_response'] ?? "챗봇 응답 없음";
-
-    return SleepDataResponse(
-      sleepData: SleepData.fromJson(jsonResponse['sleep_data']),
-      chatbotResponse: chatbotResponse,
-    );
-  } else {
-    throw Exception("수면 데이터를 불러오는데 실패했습니다. 응답: ${response.body}");
-  }
-}
-
-class SleepDataScreenWeekly extends StatefulWidget {
-  const SleepDataScreenWeekly({super.key});
-
-  @override
-  _SleepDataScreenState createState() => _SleepDataScreenState();
-}
-
-class _SleepDataScreenState extends State<SleepDataScreenWeekly> {
-  late Future<SleepDataResponse> futureSleepData;
-
-  @override
-  void initState() {
-    super.initState();
-    futureSleepData = fetchSleepData();
-  }
+  const WeeklySleepChart({Key? key, required this.data}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("수면 데이터")),
-      body: Center(
-        child: FutureBuilder<SleepDataResponse>(
-          future: futureSleepData,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            } else if (snapshot.hasError) {
-              return Text('에러: ${snapshot.error}');
-            } else {
-              SleepDataResponse responseData =
-                  snapshot.data!; // ✅ SleepDataResponse로 변경
-              SleepData data = responseData.sleepData;
-              String chatbotResponse = responseData.chatbotResponse;
-              print("📡 챗봇 응답 데이터: $chatbotResponse");
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('딥슬립: ${data.avg_deep_sleep}'),
-                  Text('얕은슬립: ${data.avg_light_sleep}'),
-                  Text('렘슬립: ${data.avg_rem_sleep}'),
-                  Text('시간: ${data.avg_sleep_time}'),
-                  Text('점수: ${data.avg_sleep_score}'),
-                  Text('주차: ${data.week_number}'),
-                  SizedBox(height: 20),
-                  Text(
-                    "💬 챗봇 피드백",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(height: 10),
+
+        // ✅ 주차 정보
+        Text(
+          "${data.week_number}",
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+
+        // ✅ 기간 표시
+        const SizedBox(height: 5),
+        Text(
+          "2025.02.09 ~ 2025.02.15",
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+        ),
+
+        const SizedBox(height: 20),
+
+        // ✅ 차트 표시
+        SizedBox(
+          height: 200,
+          child: BarChart(
+            BarChartData(
+              barGroups: _getBarGroups(),
+              titlesData: _getTitles(),
+              borderData: FlBorderData(show: false),
+              gridData: FlGridData(show: false),
+              barTouchData: BarTouchData(enabled: true),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // ✅ 평균 수면 점수 표시
+        Column(
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: CircularProgressIndicator(
+                    value: data.avg_sleep_score / 100,
+                    strokeWidth: 8,
+                    backgroundColor: Colors.grey.shade300,
+                    color: Colors.black,
                   ),
-                  Text(chatbotResponse, style: TextStyle(fontSize: 16)),
-                ],
-              );
-            }
+                ),
+                Text(
+                  "${data.avg_sleep_score}",
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            const Text("평균 점수", style: TextStyle(fontSize: 16)),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // ✅ 평균 수면 시간 표시
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            "평균 수면시간   ${data.avg_sleep_time}",
+            style: const TextStyle(fontSize: 16),
+          ),
+        ),
+
+        const SizedBox(height: 30),
+
+        // ✅ 한 주에 대한 요약 & 특이사항
+        _buildSummarySection(),
+      ],
+    );
+  }
+
+  /// 📌 주차별 평균 수면 점수 막대 그래프
+  List<BarChartGroupData> _getBarGroups() {
+    return [
+      _buildBarGroup(0, data.mon_score.toDouble()),
+      _buildBarGroup(1, data.tue_score.toDouble()),
+      _buildBarGroup(2, data.wed_score.toDouble()),
+      _buildBarGroup(3, data.thu_score.toDouble()),
+      _buildBarGroup(4, data.fri_score.toDouble()),
+      _buildBarGroup(5, data.sat_score.toDouble()),
+      _buildBarGroup(6, data.sun_score.toDouble()),
+    ];
+  }
+
+  /// 📌 개별 막대 바 생성
+  BarChartGroupData _buildBarGroup(int x, double y) {
+    return BarChartGroupData(
+      x: x,
+      barRods: [
+        BarChartRodData(
+          toY: y,
+          color: Colors.black,
+          width: 16,
+          borderRadius: BorderRadius.circular(5),
+        ),
+      ],
+    );
+  }
+
+  /// 📌 월~일 요일 타이틀 표시
+  FlTitlesData _getTitles() {
+    return FlTitlesData(
+      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      bottomTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          getTitlesWidget: (value, meta) {
+            List<String> days = ["월", "화", "수", "목", "금", "토", "일"];
+            return Text(days[value.toInt()], style: const TextStyle(fontSize: 14));
           },
         ),
       ),
+    );
+  }
+
+  /// 📌 한 주 요약 & 특이사항 표시
+  Widget _buildSummarySection() {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.black.withOpacity(0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                "✔ 한 주에 대한 요약",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Text(
+                "✔ 이번 주 특이사항",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("✔ 개선사항"),
+                  Icon(Icons.arrow_forward_ios, size: 16),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:somnus/screen/start_page.dart';
-import 'package:somnus/screen/sleep_screen.dart';
+import 'package:somnus/model/sleep_daily_data.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // ✅ Flutter 엔진 초기화 (SharedPreferences 오류 방지)
