@@ -46,8 +46,18 @@ async def weekly_report_process(sleep_data):
     
     chain = prompt | llm
     result = await chain.ainvoke({"content":template_escaped})
-    
     print(result.content)
-    return result.content
+    
+    # 저장하기 좋게 리스트로 바꿔주기
+    def result_process(s):
+        s = s.replace("\n", "").strip()
+        s = s.replace("한 주에 대한 요약: ", "")
+        s = s.replace("이번 주 특이사항: ", "")
+        s = s.replace("개선사항: ", "")
+        return json.loads(s)
+    result = result_process(result.content)
+    # print("변환한 리스트: ",result)
+    
+    return result
     
     

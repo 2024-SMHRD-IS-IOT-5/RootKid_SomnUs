@@ -38,6 +38,7 @@ async def write_report(sleep_data:dict):
     elif type == "weekly":
         result = await weekly_report_process(sleep_data)
         date = sleep_data["week_number"]
+        # print(len(result))
         
     elif type == "monthly":
         result = await monthly_report_process(sleep_data)
