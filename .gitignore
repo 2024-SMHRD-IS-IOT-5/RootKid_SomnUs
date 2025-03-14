@@ -1,6 +1,7 @@
 .env
 
 fastapi/__pycache__/
+llm/**/__pycache__/
 
 llm/.env
 메모.txt

@@ -17,9 +17,9 @@ async def daily_report_process(sleep_data):
       "date": sleep_data["date"],
       "sleep_score": sleep_data["sleep_score"],
       "wakeup_count": sleep_data["wakeup_count"],
-      "lightsleep_duration": sleep_data["light_sleep"],
-      "deepsleep_duration": sleep_data["deep_sleep"],
-      "remsleep_duration": sleep_data["rem_sleep"],
+      "lightsleep_duration": sleep_data["lightsleep_duration"],
+      "deepsleep_duration": sleep_data["deepsleep_duration"],
+      "remsleep_duration": sleep_data["remsleep_duration"],
       "breathing_disturbances_intensity": sleep_data["breathing_disturbances_intensity"],
   }
   
