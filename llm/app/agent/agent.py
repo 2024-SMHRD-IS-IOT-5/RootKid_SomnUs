@@ -9,7 +9,7 @@ from app.tools.rag_tool import query_rag
 from app.core.config import API_KEY
 
 
-llm = ChatOpenAI(model="gpt-4-turbo", temperature=0, openai_api_key=API_KEY)
+llm = ChatOpenAI(model="gpt-4", temperature=0, openai_api_key=API_KEY)
 
 fallback_tool = Tool( 
         name="Fallback-Tool",
@@ -44,6 +44,16 @@ agent = initialize_agent(
     llm=llm,
     agent=AgentType.OPENAI_MULTI_FUNCTIONS,
     verbose=True,
+    agent_kwargs={
+        "system_message": (
+            """
+            사용자의 질문을 분석하여 가장 적절한 도구를 선택하세요.
+            수면에 관한 정볼를 검색할 때는 RAG-Tool을 사용하세요.
+            데이터베이스에서 사용자의 수면 정보를 조회할 때는 DB-Tool을 사용하세요.
+            과거 대화 내용을 불러올 필요가 없다면 History-Tool은 사용하지 마세요.
+            """
+        )
+    }
 )
 
 def run_agent(user_id: str, question: str, user_type: str, time) -> str:
@@ -66,7 +76,7 @@ def run_agent(user_id: str, question: str, user_type: str, time) -> str:
     combined_prompt = (
         f"사용자 ID: {user_id}\n"
         f"질문: {question}\n"
-        f"질문 시각: {time}"
+        f"질문 시각: {time}\n"
         "위 정보를 바탕으로 적절한 도구를 선택하여 답변을 제공해줘."
     )
     

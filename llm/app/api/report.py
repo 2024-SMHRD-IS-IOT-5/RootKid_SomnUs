@@ -30,17 +30,6 @@ async def make_report(sleep_data:dict):
     type = sleep_data["aggregation_type"]
    
     return "HI"
-        
-
-    
-    
-    
-@router.get("/test/daily")
-def make_report_test():
-    print("test start!")
-    result = daily_report_process()
-    print(result)
-    return "리포트 멘트 생성 테스트중"
     
 # @router.post("/daily")
 # async def daily_report_process(data : SleepDataModel):
