@@ -83,6 +83,7 @@ class WeeklySleepDataResponse {
   final WeeklySleepData sleepData;
   final String chatbotResponse;
 
+
   WeeklySleepDataResponse({required this.sleepData, required this.chatbotResponse});
 
   factory WeeklySleepDataResponse.fromJson(Map<String, dynamic> json) {
