@@ -1,89 +1,144 @@
-import os
-from langchain.agents import initialize_agent, AgentType
-from langchain_community.chat_models import ChatOpenAI
-from langchain.tools import Tool
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain.prompts import PromptTemplate
+from langchain.memory import ConversationBufferMemory
+from langchain.llms import OpenAI
+from typing import List, Dict, Any, Optional
+import logging
 
-from app.tools.db_tool import query_db
-from app.tools.history_tool import query_history
-from app.tools.rag_tool import query_rag
+# Import config
 from app.core.config import API_KEY
 
+# Import custom tools
+from tools.db_tool import SleepDataTool
+from tools.vector_search_tool import VectorSearchTool
+from tools.sleep_analyzer_tool import SleepAnalyzerTool
+from tools.recommendation_tool import RecommendationTool
 
-llm = ChatOpenAI(model="gpt-4", temperature=0, openai_api_key=API_KEY)
+# Import prompts
+from template.system_prompts import SLEEP_AGENT_SYSTEM_PROMPT
 
-fallback_tool = Tool( 
-        name="Fallback-Tool",
-        func = query_rag,
-        description="사용자의 질문이 어떤 도구에도 적합하지 않을 때, 기본적으로 AI가 직접 응답을 생성합니다."
-    )
+logger = logging.getLogger(__name__)
 
-# Agent가 사용할 도구(Tool) 정의
-tools = [
-    Tool(
-        name="DB-Tool",
-        func=query_db,
-        description="사용자의 수면에 대한 모든 정보를 제공합니다. 사용자가 자신의 수면에 관해 물어볼 때 사용합니다.질문에 날짜 조건이 들어있다면 반드시 호출합니다."
-    ),
-    Tool(
-        name="History-Tool",
-        func=query_history,
-        description="최근 대화 내역을 기반으로 답변을 생성합니다. 이전 대화 맥락을 제공합니다. 대화 맥락 없이는 답변을 생성하기 부적합할때 사용합니다."
-    ),
-    Tool(
-        name="RAG-Tool",
-        func=query_rag,
-        description="수면 관련 일반 정보를 검색합니다. 학술 자료 등에서 정보를 가져옵니다."
-    ),
-    fallback_tool
-]
-
-
-# Agent 초기화
-agent = initialize_agent(
-    tools=tools,
-    llm=llm,
-    agent=AgentType.OPENAI_MULTI_FUNCTIONS,
-    verbose=True,
-    agent_kwargs={
-        "system_message": (
-            """
-            사용자의 질문을 분석하여 가장 적절한 도구를 선택하세요.
-            수면에 관한 정볼를 검색할 때는 RAG-Tool을 사용하세요.
-            데이터베이스에서 사용자의 수면 정보를 조회할 때는 DB-Tool을 사용하세요.
-            과거 대화 내용을 불러올 필요가 없다면 History-Tool은 사용하지 마세요.
-            """
-        )
-    }
-)
-
-def run_agent(user_id: str, question: str, user_type: str, time) -> str:
+class SleepAgent:
     """
-    사용자 ID, 질문, 그리고 사용자 유형(학생/학부모)을 받아 Agent를 실행함.
-    Agent는 입력된 정보를 바탕으로 적절한 도구를 선택하여 실행하고 결과를 반환함.
+    AI Agent specialized for sleep data analysis and recommendations.
+    Uses ReAct framework for reasoning and acting based on user queries.
+    """
     
-    Args:
-        user_id (str): 사용자 ID
-        question (str): 사용자의 질문
-        user_type (str): 사용자 유형 ("학생" 또는 "학부모")
+    def __init__(self, config: Dict[str, Any]):
+        """
+        Initialize the Sleep Agent with necessary tools and configurations.
         
-    Returns:
-        str: Agent가 생성한 응답
-    """
+        Args:
+            config: Configuration dictionary with API keys, model params, etc.
+        """
+        self.config = config
+        self.llm = OpenAI(
+            temperature=config.get("agent_temperature", 0.2),
+            model_name=config.get("agent_model", "gpt-4"),
+            max_tokens=config.get("agent_max_tokens", 1500)
+        )
+        
+        # 대화내용 저장.
+        # ConversationBufferMemory는 대화내용 저장은 잘하는데,
+        # 죄다 저장하는지라 token을 많이 쳐먹는다.
+        # 그게 걱정된다면 ConversationSummaryMemory나 
+        # ConversationBufferWindowMemory가 낫다.
+        # 근데 지금은 발표할거라 최대한 성능 좋은거쓸거임 ㅋㅋ
+        self.memory = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True,
+            output_key="output"
+        )
+        
+        # Initialize tools
+        self.tools = self._initialize_tools()
+        
+        # Create the agent
+        self.agent = self._create_agent()
+        
+        # Create the agent executor
+        self.agent_executor = AgentExecutor.from_agent_and_tools(
+            agent=self.agent,
+            tools=self.tools,
+            memory=self.memory,
+            verbose=config.get("verbose", False),
+            handle_parsing_errors=True,
+            max_iterations=config.get("max_iterations", 3),
+            max_execution_time=config.get("max_execution_time", 20),
+            early_stopping_method="generate"
+        )
     
-    print("agent가 받은 user_id: ", user_id)
+    def _initialize_tools(self) -> List:
+        """Initialize and return the tools available to the agent."""
+        db_tool = SleepDataTool(
+            db_connection_string=self.config.get("db_connection_string"),
+            db_name=self.config.get("db_name")
+        )
+        
+        vector_tool = VectorSearchTool(
+            vector_connection_string=self.config.get("vector_connection_string"),
+            vector_db_name=self.config.get("vector_db_name")
+        )
+        
+        analyzer_tool = SleepAnalyzerTool(
+            llm=self.llm
+        )
+        
+        recommendation_tool = RecommendationTool(
+            llm=self.llm
+        )
+        
+        return [db_tool, vector_tool, analyzer_tool, recommendation_tool]
     
-    # 사용자 컨텍스트를 포함한 프롬프트 구성
-    combined_prompt = (
-        f"사용자 ID: {user_id}\n"
-        f"질문: {question}\n"
-        f"질문 시각: {time}\n"
-        "위 정보를 바탕으로 적절한 도구를 선택하여 답변을 제공해줘."
-    )
+    def _create_agent(self):
+        """Create and return the ReAct agent."""
+        prompt = PromptTemplate.from_template(SLEEP_AGENT_SYSTEM_PROMPT)
+        
+        return create_react_agent(
+            llm=self.llm,
+            tools=self.tools,
+            prompt=prompt
+        )
     
-    # Agent 실행: 입력된 프롬프트에 따라 필요한 도구를 호출하고 응답 생성
-    result = agent.invoke(combined_prompt)
-    return result["output"]
-
+    async def process_message(self, user_id: str, message: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        Process user message and return the agent's response.
+        
+        Args:
+            user_id: Unique identifier for the user
+            message: The user's message text
+            metadata: Optional metadata about the request
+            
+        Returns:
+            Dictionary containing the agent's response and any additional data
+        """
+        logger.info(f"Processing message for user {user_id}: {message[:50]}...")
+        
+        # Add user context to the input
+        input_data = {
+            "input": message,
+            "user_id": user_id
+        }
+        
+        try:
+            # Execute the agent
+            response = await self.agent_executor.ainvoke(input_data)
+            
+            logger.info("agent response generated!!")
+            
+            return {
+                "response": response["output"],
+                "thought_process": response.get("intermediate_steps", []),
+                "status": "success"
+            }
+        except Exception as e:
+            logger.error(f"Error processing message: {str(e)}")
+            return {
+                "response": "I'm sorry, I encountered an error while processing your request.",
+                "error": str(e),
+                "status": "error"
+            }
 
 # ReAct 
 # Reasoning + Acting 으로, 

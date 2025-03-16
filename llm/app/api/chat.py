@@ -31,7 +31,7 @@ Agent실행 결과를 return.
 
 """
 from fastapi import APIRouter, HTTPException
-from app.services.chat.chat_service import process_chat
+from app.services.chat.chat_service import ChatService
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -50,14 +50,16 @@ async def chat_endpoint(payload: ChatMessageRequest):
     """
     사용자 프롬프트를 받아 Agent를 실행하고 응답을 반환하는 API 엔드포인트
     """
-    question = payload.message
+    message = payload.message
     # userid = payload.userid
     user_id = "smhrd"
     # usertype = payload.usertype
     usertype = "학생"
     
+    chat_service = ChatService()
+    
 
     # `chat_service.py`를 호출하여 Agent 실행
-    response = await process_chat(question = question, user_id=user_id, user_type = usertype)
+    response = await chat_service.process_message(user_id, message)
 
     return {"response": response}

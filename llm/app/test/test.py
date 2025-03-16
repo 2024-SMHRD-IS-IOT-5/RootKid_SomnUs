@@ -3,6 +3,7 @@ from app.db.database import db
 
 from app.db.chat_repository import save_chat
 from app.services.chat.chat_service import process_chat
+from app.test.langgraph import langgraph
 
 router = APIRouter()
 
@@ -29,3 +30,9 @@ async def chat_test():
     response = process_chat(question=question, user_id = userid, user_type=usertype)
     print(response)
     return {"message":"chatbot testing"}
+
+@router.get("/langgraph")
+def langgraph_test():
+    print("langgraph 테스트 시작")
+    langgraph()
+    return "langgraph"
