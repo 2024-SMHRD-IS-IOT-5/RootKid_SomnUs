@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:somnus/model/sleep_daily_data.dart';
 import 'package:somnus/model/sleep_weekly_data.dart';
+import 'package:somnus/screen/promotion_page.dart';
 import 'user_info_page.dart'; // 사용자 정보 페이지 import
 
 class SettingsPage extends StatefulWidget {
@@ -59,7 +60,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => WeeklySleepDataScreen()),
+                    MaterialPageRoute(builder: (context) => UserInfoPage()),
                   );
                 },
               ),
@@ -77,9 +78,17 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
 
               const SizedBox(height: 20),
 
-              // ✅ 결제 및 구독 관리
-              _buildExpandableTile("프로모션", "이벤트 및 특별 혜택"),
-              _buildAnimatedExpandedContent("프로모션", ["이벤트 확인", "관련 제품", "특별 혜택"]),
+              // ✅ 프로모션 (별도 페이지로 이동)
+              _buildNavigationTile(
+                title: "프로모션",
+                subtitle: "이벤트 및 특별 혜택",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PromotionPage()),
+                  );
+                },
+              ),
 
               const SizedBox(height: 20),
 

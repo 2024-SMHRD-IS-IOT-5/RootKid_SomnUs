@@ -5,7 +5,6 @@ import 'package:somnus/model/sleep_daily_data.dart';
 import 'package:somnus/model/sleep_weekly_data.dart';
 import 'package:somnus/screen/sleep_weekly_screen.dart';
 import 'package:somnus/services/auth_service.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 
 class ReportPage extends StatefulWidget {
@@ -24,7 +23,18 @@ class _ReportPageState extends State<ReportPage> {
 
 
   late Future<DailySleepDataResponse> futureSleepData; // ✅ sleep_screen.dart에서 API 호출
+  late Future<WeeklySleepDataResponse> futureWeeklySleepData;
 
+  final List<String> weekList = [
+    "2월 4주차",
+    "3월 1주차",
+    "3월 2주차",
+    "3월 3주차",  // 기본값 index=3
+    "3월 4주차",
+    "4월 1주차"
+  ];
+
+  int selectedWeekIndex = 3; // 기본값 3월 3주차
 
 
   @override
@@ -37,6 +47,7 @@ class _ReportPageState extends State<ReportPage> {
     selectedDate = DateFormat("yyyy-MM-dd").parse(widget.date);
     // 초기날짜를 위젯의 date값으로 설정
     String dateStr = DateFormat("yyyy-MM-dd").format(selectedDate);
+    futureWeeklySleepData = fetchWeeklySleepData();
   }
 
   @override
@@ -71,6 +82,8 @@ class _ReportPageState extends State<ReportPage> {
       futureSleepData = fetchDailySleepData(dateStr); // ✅ 날짜 변경 후 API 다시 호출
     });
   }
+
+
   //
   // // ✅ API에서 받은 날짜를 DateTime으로 변환하는 함수
   // DateTime parseApiDate(String dateString) {
@@ -293,12 +306,12 @@ class _ReportPageState extends State<ReportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 10),
-        _buildSleepStats(data),
-        const SizedBox(height: 30),
+        const SizedBox(height: 20),
         _buildSleepCharts(data),
-        const SizedBox(height: 30),
-        _buildAdditionalMetrics(data, chatbotResponse),
+        const SizedBox(height: 40),
+        _buildAdditionalMetrics(chatbotResponse,data),
+        const SizedBox(height: 20),
+        _buildSleepStats(data),
         const SizedBox(height: 30),
       ],
     );
@@ -397,9 +410,11 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   /// **📌 심박수, 코골이, 호흡수 + 특이사항 추가**
-  Widget _buildAdditionalMetrics(DailySleepData data, String chatbotResponse) {
+  Widget _buildAdditionalMetrics( String chatbotResponse,DailySleepData data) {
     return Column(
       children: [
+        _buildChatbotComment(chatbotResponse),
+        const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(15),
           decoration: _boxDecoration(),
@@ -413,8 +428,6 @@ class _ReportPageState extends State<ReportPage> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
-        _buildChatbotComment(chatbotResponse),
       ],
     );
   }
