@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional, List, Union
 from pymongo import MongoClient
 import logging
 from datetime import datetime, timedelta
+import calendar
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,31 @@ class SleepDataTool(BaseTool):
             except Exception as e:
                 logger.error(f"MongoDB 연결 초기화 실패: {str(e)}")
                 raise
+            
+    def _convert_date_to_week(date_str: str) -> str:
+        """YYYY-MM-DD 형식의 날짜를 YYYY-MM-W# 형식의 주 번호로 변환합니다."""
+        
+        # 날짜 파싱
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d") #str을 날짜 객체로 변환
+        first_day_of_month = datetime(date_obj.year, date_obj.month, 1)
+        
+            # 월의 첫 번째 월요일 찾기
+        first_monday = first_day_of_month
+        while first_monday.weekday() != 0:  # 0 = 월요일
+            first_monday += timedelta(days=1)
+            
+        # 첫 번째 월요일이 나오기 전까지는 이전 달의 마지막 주차 유지
+        if date_obj < first_monday:
+            previous_month = first_day_of_month - timedelta(days=1)
+            last_week = (previous_month.day-1)//7 + 1
+            return f"{previous_month.year}-{previous_month.month:02d}-W{last_week}"
+        
+        # 주차 계산 (첫 월요일부터 시작)
+        delta_days = (date_obj - first_monday).days
+        week_number = (delta_days // 7) + 1
+        
+        # YYYY-MM-W# 형식으로 반환
+        return f"{date_obj.year}-{date_obj.month:02d}-W{week_number}"
     
     def _run(
         self, 
@@ -99,6 +125,24 @@ class SleepDataTool(BaseTool):
             
             # 날짜 필터 추가 (제공된 경우)
             if start_date or end_date:
+                # 데이터 유형에 따라 다른 필드 사용
+                if data_type == "daily":
+                    date_field = "date"
+                elif data_type == "weekly":
+                    date_field = "week_number"
+                    # 날짜를 주 형식으로 변환 (예: "2025-02-10" -> "2025-02-W2")
+                    if start_date:
+                        start_date = self._convert_date_to_week(start_date)
+                    if end_date:
+                        end_date = self._convert_date_to_week(end_date)
+                elif data_type == "monthly":
+                    date_field = "month_number"
+                    # 날짜를 월 형식으로 변환 (예: "2025-02-15" -> "2025-02")
+                    if start_date:
+                        start_date = start_date[:7]  # "YYYY-MM-DD" -> "YYYY-MM"
+                    if end_date:
+                        end_date = end_date[:7]  # "YYYY-MM-DD" -> "YYYY-MM"
+                
                 date_filter = {}
                 if start_date:
                     date_filter["$gte"] = start_date
@@ -106,7 +150,7 @@ class SleepDataTool(BaseTool):
                     date_filter["$lte"] = end_date
                 
                 if date_filter:
-                    query["date"] = date_filter
+                    query[date_field] = date_filter
             
             # 데이터 유형에 따라 적절한 컬렉션 선택
             if data_type == "daily":
@@ -114,6 +158,13 @@ class SleepDataTool(BaseTool):
             else:  # weekly or monthly
                 collection = self.aggregated
                 query["type"] = data_type
+            
+            # 데이터 유형에 따라 적절한 컬렉션 선택
+            if data_type == "daily":
+                collection = self.daily
+            else:  # weekly or monthly
+                collection = self.aggregated
+                query["aggregation_type"] = data_type
             
             # 데이터 검색
             cursor = collection.find(query)
@@ -146,17 +197,6 @@ class SleepDataTool(BaseTool):
                     "data_type": data_type
                 }
             }
-    
-    async def _arun(
-        self, 
-        user_id: str, 
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        data_type: str = "daily"
-    ) -> Dict[str, Any]:
-        """비동기 버전의 실행 메서드"""
-        # 동기 메서드를 호출 (필요한 경우 나중에 완전한 비동기 구현으로 교체)
-        return self._run(user_id, start_date, end_date, data_type)
     
     def get_recent_data(self, user_id: str, days: int = 7, data_type: str = "daily") -> Dict[str, Any]:
         """

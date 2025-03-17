@@ -87,9 +87,9 @@ class SleepAgent:
         
         # 학술 정보 검색 도구
         vector_tool = VectorSearchTool(
-            # vector_connection_string=self.config.get("vector_connection_string"),
-            # vector_db_name=self.config.get("vector_db_name"),
-            # collection_name=self.config.get("vector_collection_name", "sleep_research")
+            index_path = "sleep_knowledge_index",
+            documents_path = "sleep_documents.pkl",
+            embedding_model_name = "all-MiniLM-L6-v2"
         )
         
         # 앞으로 필요한 도구만 여기에 추가

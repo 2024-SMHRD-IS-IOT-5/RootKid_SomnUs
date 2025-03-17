@@ -12,3 +12,5 @@ langchain.tools
 langchain-community
 tzdata
 langsmith
+faiss-cpu
+sentence_transformers
