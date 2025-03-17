@@ -44,6 +44,8 @@ async def write_report(sleep_data:dict):
         result = await monthly_report_process(sleep_data)
         date = sleep_data["month_number"]
         
+    ### 어투변경 llm 함수
+        
     await save_report(id=id, date=date, comment=result, timestamp=time, type=type)
     
     return {f"message" : "{type} 리포트 작성 완료", "result": {"chatbot_response": result}}
