@@ -1,5 +1,6 @@
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.prompts import PromptTemplate
+from langchain.tools import BaseTool
 from langchain.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
 from typing import List, Dict, Any, Optional
@@ -11,11 +12,9 @@ from app.core.config import API_KEY
 # Import custom tools
 from tools.db_tool import SleepDataTool
 from tools.vector_search_tool import VectorSearchTool
-from tools.sleep_analyzer_tool import SleepAnalyzerTool
-from tools.recommendation_tool import RecommendationTool
 
 # Import prompts
-from template.system_prompts import SLEEP_AGENT_SYSTEM_PROMPT
+from llm.app.template.agent_template import SLEEP_AGENT_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -69,27 +68,33 @@ class SleepAgent:
             early_stopping_method="generate"
         )
     
-    def _initialize_tools(self) -> List:
-        """Initialize and return the tools available to the agent."""
+
+    def _initialize_tools(self) -> List[BaseTool]:
+        """
+        에이전트가 사용할 수 있는 도구들을 초기화하고 반환합니다.
+        
+        Returns:
+            List[BaseTool]: 에이전트가 사용할 도구 목록
+        """
+        # 수면 데이터 도구 - 일별, 주간/월간 데이터 접근
         db_tool = SleepDataTool(
             db_connection_string=self.config.get("db_connection_string"),
-            db_name=self.config.get("db_name")
+            db_name=self.config.get("db_name"),
+            daily_collection="processing_sleep",
+            aggregated_collection="sleep",
+            reports_collection="reports"  # 필요하지 않으면 나중에 제거 가능
         )
         
+        # 학술 정보 검색 도구
         vector_tool = VectorSearchTool(
-            vector_connection_string=self.config.get("vector_connection_string"),
-            vector_db_name=self.config.get("vector_db_name")
+            # vector_connection_string=self.config.get("vector_connection_string"),
+            # vector_db_name=self.config.get("vector_db_name"),
+            # collection_name=self.config.get("vector_collection_name", "sleep_research")
         )
         
-        analyzer_tool = SleepAnalyzerTool(
-            llm=self.llm
-        )
+        # 앞으로 필요한 도구만 여기에 추가
         
-        recommendation_tool = RecommendationTool(
-            llm=self.llm
-        )
-        
-        return [db_tool, vector_tool, analyzer_tool, recommendation_tool]
+        return [db_tool, vector_tool]
     
     def _create_agent(self):
         """Create and return the ReAct agent."""
