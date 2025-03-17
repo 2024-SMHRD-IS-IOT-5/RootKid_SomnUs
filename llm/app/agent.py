@@ -2,19 +2,20 @@ from langchain.agents import AgentExecutor, create_react_agent
 from langchain.prompts import PromptTemplate
 from langchain.tools import BaseTool
 from langchain.memory import ConversationBufferMemory
-from langchain.llms import OpenAI
+from langchain_community.chat_models import ChatOpenAI
 from typing import List, Dict, Any, Optional
 import logging
+import os
 
 # Import config
 from app.core.config import API_KEY
 
 # Import custom tools
-from tools.db_tool import SleepDataTool
-from tools.vector_search_tool import VectorSearchTool
+from app.tools.db_tool import SleepDataTool
+from app.tools.vector_search_tool import VectorSearchTool
 
 # Import prompts
-from llm.app.template.agent_template import SLEEP_AGENT_SYSTEM_PROMPT
+from app.template.agent_template import SLEEP_AGENT_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,8 @@ class SleepAgent:
             config: Configuration dictionary with API keys, model params, etc.
         """
         self.config = config
-        self.llm = OpenAI(
+        self.llm = ChatOpenAI(
+            openai_api_key=API_KEY,
             temperature=config.get("agent_temperature", 0.2),
             model_name=config.get("agent_model", "gpt-4"),
             max_tokens=config.get("agent_max_tokens", 1500)
@@ -58,14 +60,14 @@ class SleepAgent:
         
         # Create the agent executor
         self.agent_executor = AgentExecutor.from_agent_and_tools(
-            agent=self.agent,
+            agent=self.agent, 
             tools=self.tools,
             memory=self.memory,
             verbose=config.get("verbose", False),
             handle_parsing_errors=True,
-            max_iterations=config.get("max_iterations", 3),
-            max_execution_time=config.get("max_execution_time", 20),
-            early_stopping_method="generate"
+            max_iterations=config.get("max_iterations", 2),
+            max_execution_time=config.get("max_execution_time", 15),
+            # early_stopping_method="generate"
         )
     
 
@@ -76,29 +78,70 @@ class SleepAgent:
         Returns:
             List[BaseTool]: 에이전트가 사용할 도구 목록
         """
-        # 수면 데이터 도구 - 일별, 주간/월간 데이터 접근
+        print("connection string 확인: ", self.config.get("db_connection_string"))
+        print("dbname 확인: ", self.config.get("db_name"))
+        
+        # 수면 데이터 도구 - 일별, 주간/월간 데이터 접근        
         db_tool = SleepDataTool(
             db_connection_string=self.config.get("db_connection_string"),
             db_name=self.config.get("db_name"),
-            daily_collection="processing_sleep",
-            aggregated_collection="sleep",
+            daily_collection="sleep",
+            aggregated_collection="processing_sleep",
             reports_collection="reports"  # 필요하지 않으면 나중에 제거 가능
         )
         
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        FAISS_INDEX_PATH = os.path.join(BASE_DIR, "../faiss/faiss_index")
+        DOCUMENT_STORE_PATH = os.path.join(BASE_DIR, "../faiss/document_store.pkl")
+        
         # 학술 정보 검색 도구
         vector_tool = VectorSearchTool(
-            index_path = "sleep_knowledge_index",
-            documents_path = "sleep_documents.pkl",
-            embedding_model_name = "all-MiniLM-L6-v2"
+            index_path = FAISS_INDEX_PATH,
+            documents_path = DOCUMENT_STORE_PATH,
+            embedding_model_name = "text-embedding-ada-002"
         )
         
         # 앞으로 필요한 도구만 여기에 추가
         
-        return [db_tool, vector_tool]
+        tools = [db_tool, vector_tool]
+        
+        print("Initialized tools:")
+        for tool in tools:
+            print(f"Tool: {getattr(tool, 'name', 'No name')} - {getattr(tool, 'description', 'No description')}")
+    
+        return tools
     
     def _create_agent(self):
-        """Create and return the ReAct agent."""
-        prompt = PromptTemplate.from_template(SLEEP_AGENT_SYSTEM_PROMPT)
+        complete_prompt_template = f"""{SLEEP_AGENT_SYSTEM_PROMPT}
+
+    You are given a message that contains a User ID and a User Query.
+    First, extract the User ID from the message.
+    When using tools that require a user_id parameter as id, always use this extracted User ID.
+
+    Question: {{input}}
+
+    You have access to the following tools:
+    {{tool_names}}
+
+    List of tools:
+    {{tools}}
+
+    Use the following format:
+    Thought: you should always think about what to do
+    Action: the action to take, should be one of [{{tool_names}}]
+    Action Input: the input to the action (make sure to include the user_id(id) when needed)
+    Observation: the result of the action
+    ... (this Thought/Action/Action Input/Observation can repeat N times)
+    Thought: I now know the final answer
+    Final Answer: the final answer to the original input question
+
+    {{agent_scratchpad}}
+    """
+        
+        prompt = PromptTemplate(
+            input_variables=["input","id","chat_history","intermediate_steps","tool_names","tools","agent_scratchpad"],
+            template=complete_prompt_template
+        )
         
         return create_react_agent(
             llm=self.llm,
@@ -106,31 +149,30 @@ class SleepAgent:
             prompt=prompt
         )
     
-    async def process_message(self, user_id: str, message: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
+    async def process_message(self, id: str, message: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Process user message and return the agent's response.
         
         Args:
-            user_id: Unique identifier for the user
+            id: Unique identifier for the user
             message: The user's message text
             metadata: Optional metadata about the request
             
         Returns:
             Dictionary containing the agent's response and any additional data
         """
-        logger.info(f"Processing message for user {user_id}: {message[:50]}...")
+        logger.info(f"Processing message for user {id}: {message[:50]}...")
         
         # Add user context to the input
         input_data = {
-            "input": message,
-            "user_id": user_id
+            f"User ID: {id}\n\nUser Query: {message}"
         }
-        
+
         try:
             # Execute the agent
-            response = await self.agent_executor.ainvoke(input_data)
-            
+            response = await self.agent_executor.ainvoke({"input":input_data})
             logger.info("agent response generated!!")
+            print("agent의 대답: ",response)
             
             return {
                 "response": response["output"],

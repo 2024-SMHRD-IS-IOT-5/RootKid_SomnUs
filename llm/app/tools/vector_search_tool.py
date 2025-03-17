@@ -6,6 +6,8 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain_community.chat_models import ChatOpenAI
 from typing import Optional, Type
 from pydantic import BaseModel, Field
+import os
+import textwrap
 
 from app.core.config import API_KEY
 
@@ -15,8 +17,9 @@ embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_ke
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, openai_api_key=API_KEY)
 
 # FAISS 인덱스 및 문서 매핑 로드
-FAISS_INDEX_PATH = "../faiss/faiss_index"
-DOCUMENT_STORE_PATH = "../faiss/document_store.pkl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FAISS_INDEX_PATH = os.path.join(BASE_DIR, "../faiss/faiss_index")
+DOCUMENT_STORE_PATH = os.path.join(BASE_DIR, "../faiss/document_store.pkl")
 
 # FAISS 인덱스 로드
 faiss_index = faiss.read_index(FAISS_INDEX_PATH)
@@ -29,8 +32,8 @@ class VectorSearchInput(BaseModel):
     query: str = Field(..., description="사용자가 검색하려는 질문")
 
 class VectorSearchTool(BaseTool):
-    name = "VectorSearch"
-    description = "벡터 임베딩된 학술자료를 검색하여, 질문과 관련된 정보를 반환합니다."
+    name: str = "VectorSearch"
+    description: str = "벡터 임베딩된 학술자료를 검색하여, 질문과 관련된 정보를 반환합니다."
     args_schema: Type[BaseModel] = VectorSearchInput
 
     def _run(self, query: str) -> str:
@@ -43,19 +46,27 @@ class VectorSearchTool(BaseTool):
         Returns:
             str: 검색된 학술자료를 기반으로 한 AI 응답
         """
+        
+        print("VectorEmbedding Tool 점검!!!\n")
+        print("embedding_model:", embedding_model)
+        print("faiss_index:", faiss_index)
+        print("document_store:", document_store)
+        print("llm:", llm)
+        
         try:
             # 사용자 질문을 벡터화
             query_vector = np.array(embedding_model.embed_query(query)).astype("float32").reshape(1, -1)
 
-            # FAISS를 이용해 가장 유사한 학술자료 검색 (상위 3개)
-            top_k = 3
+            # FAISS를 이용해 가장 유사한 학술자료 검색 (상위 1개)
+            top_k = 1
             distances, indices = faiss_index.search(query_vector, top_k)
 
             # 검색된 문서 가져오기
             retrieved_docs = [document_store[idx] for idx in indices[0] if idx in document_store]
 
             # 검색된 문서들을 하나의 텍스트로 조합
-            context = "\n\n".join(retrieved_docs)
+            docs = [textwrap.shorten(doc,width=500,placeholder="...")for doc in retrieved_docs]
+            context = "\n\n".join(docs)
 
             # LLM에게 학술자료를 참고하여 최종 응답 생성 요청
             prompt = f"""
@@ -65,7 +76,7 @@ class VectorSearchTool(BaseTool):
             사용자 질문: "{query}"
             위의 자료를 참고하여, 질문에 대한 최적의 답변을 제공하세요.
             """
-            response = llm.predict(prompt)
+            response = llm.predict(prompt, max_tokens=150)
 
             return response
 

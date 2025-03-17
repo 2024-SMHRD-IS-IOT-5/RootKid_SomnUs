@@ -18,7 +18,7 @@ LLM_SERVER_URL=os.getenv("LLM_SERVER_URL")
 TEST_SERVER_URL=os.getenv("TEST_SERVER_URL")
 
 # chatbot용 config
-chat_config = {
+chatbot_config = {
     # 기본 설정
     "openai_api_key": API_KEY,
     "agent_model": "gpt-4",

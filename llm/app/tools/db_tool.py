@@ -5,13 +5,15 @@ import logging
 from datetime import datetime, timedelta
 import calendar
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 
 class SleepDataTool(BaseTool):
     """MongoDB에서 사용자의 수면 데이터를 검색하는 도구"""
     
-    name = "sleep_data_retriever"
-    description = """
+    name: str = "sleep_data_retriever"
+    description: str = """
     사용자의 수면 데이터를 검색할 때 사용합니다.
     일별, 주간, 월간 수면 데이터를 조회할 수 있습니다.
     사용자 ID와 날짜 범위를 필요로 합니다.
@@ -19,12 +21,26 @@ class SleepDataTool(BaseTool):
     
     입력 형식:
     {
-        "user_id": "사용자 ID",
+        "id": "사용자 ID",
         "start_date": "YYYY-MM-DD 형식의 시작 날짜 (선택사항)",
         "end_date": "YYYY-MM-DD 형식의 종료 날짜 (선택사항)",
         "data_type": "daily, weekly, monthly 중 하나 (선택사항, 기본값: daily)"
     }
     """
+    
+    # BaseTool에서는 받을 변수들에 대해서 필드 선언을 해두어야함.
+    db_connection_string: str
+    db_name: str
+    daily_collection: str = "sleep"
+    aggregated_collection: str = "processing_sleep"
+    reports_collection: Optional[str] = None
+    
+    # 클라이언트 및 DB 관련 필드 선언
+    client: Optional[Any] = None
+    db: Optional[Any] = None
+    daily: Optional[Any] = None
+    aggregated: Optional[Any] = None
+    reports: Optional[Any] = None
     
     def __init__(
         self,
@@ -42,7 +58,14 @@ class SleepDataTool(BaseTool):
             aggregated_collection: 주별/월별 집계 데이터가 저장된 컬렉션 이름
             reports_collection: 보고서 데이터가 저장된 컬렉션 이름 (선택 사항)
         """
-        super().__init__()
+        super().__init__(
+            db_connection_string=db_connection_string,
+            db_name=db_name,
+            daily_collection=daily_collection,
+            aggregated_collection=aggregated_collection,
+            reports_collection=reports_collection
+        )
+        
         self.db_connection_string = db_connection_string
         self.db_name = db_name
         self.daily_collection = daily_collection
@@ -62,17 +85,20 @@ class SleepDataTool(BaseTool):
         """필요할 때 DB 연결을 초기화하는 헬퍼 메서드"""
         if self.client is None:
             try:
+                logger.debug(f"Initializing MongoDB connection with: {self.db_connection_string}")
                 self.client = MongoClient(self.db_connection_string)
                 self.db = self.client[self.db_name]
+                logger.debug(f"Using daily_collection: {self.daily_collection}, aggregated_collection: {self.aggregated_collection}, reports_collection: {self.reports_collection}")
                 self.daily = self.db[self.daily_collection]
                 self.aggregated = self.db[self.aggregated_collection]
                 if self.reports_collection:
                     self.reports = self.db[self.reports_collection]
+                logger.debug("MongoDB connection established successfully.")
             except Exception as e:
                 logger.error(f"MongoDB 연결 초기화 실패: {str(e)}")
                 raise
             
-    def _convert_date_to_week(date_str: str) -> str:
+    def _convert_date_to_week(self, date_str: str) -> str:
         """YYYY-MM-DD 형식의 날짜를 YYYY-MM-W# 형식의 주 번호로 변환합니다."""
         
         # 날짜 파싱
@@ -99,7 +125,7 @@ class SleepDataTool(BaseTool):
     
     def _run(
         self, 
-        user_id: str, 
+        id: str, 
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         data_type: str = "daily"
@@ -108,7 +134,7 @@ class SleepDataTool(BaseTool):
         사용자 ID와 날짜 범위를 기반으로 수면 데이터를 검색합니다.
         
         Args:
-            user_id: 데이터를 검색할 사용자의 ID
+            id: 데이터를 검색할 사용자의 ID
             start_date: YYYY-MM-DD 형식의 시작 날짜 (선택사항)
             end_date: YYYY-MM-DD 형식의 종료 날짜 (선택사항)
             data_type: 검색할 데이터 유형 ("daily", "weekly", "monthly")
@@ -116,12 +142,29 @@ class SleepDataTool(BaseTool):
         Returns:
             검색된 수면 데이터를 포함하는 사전
         """
+        input_data_final = {}
         try:
+            if isinstance(user_id, dict):
+                input_data_final = user_id
+                user_id = input_data_final.get("user_id", "").strip()
+                start_date = input_data_final.get("start_date", start_date)
+                end_date = input_data_final.get("end_date", end_date)
+                data_type = input_data_final.get("data_type", data_type)
+            else:
+                user_id = user_id.strip()
+                input_data_final = {
+                    "id": user_id,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "data_type": data_type
+                }
+            
+            
             # 필요시 DB 연결
             self._connect_db()
             
             # 기본 쿼리
-            query = {"user_id": user_id}
+            query = {"id": id}
             
             # 날짜 필터 추가 (제공된 경우)
             if start_date or end_date:
@@ -157,13 +200,6 @@ class SleepDataTool(BaseTool):
                 collection = self.daily
             else:  # weekly or monthly
                 collection = self.aggregated
-                query["type"] = data_type
-            
-            # 데이터 유형에 따라 적절한 컬렉션 선택
-            if data_type == "daily":
-                collection = self.daily
-            else:  # weekly or monthly
-                collection = self.aggregated
                 query["aggregation_type"] = data_type
             
             # 데이터 검색
@@ -180,7 +216,7 @@ class SleepDataTool(BaseTool):
                 "data": results,
                 "count": len(results),
                 "query_info": {
-                    "user_id": user_id,
+                    "id": id,
                     "date_range": {"start": start_date, "end": end_date} if (start_date or end_date) else "all",
                     "data_type": data_type
                 }
@@ -192,25 +228,19 @@ class SleepDataTool(BaseTool):
                 "status": "error",
                 "error": str(e),
                 "query_info": {
-                    "user_id": user_id,
-                    "date_range": {"start": start_date, "end": end_date} if (start_date or end_date) else "all",
-                    "data_type": data_type
+                "id": id,
+                "date_range": {"start": start_date, "end": end_date} if (start_date or end_date) else "all",
+                "data_type": data_type
                 }
             }
     
-    def get_recent_data(self, user_id: str, days: int = 7, data_type: str = "daily") -> Dict[str, Any]:
+    def get_recent_data(self, id: str, days: int = 7, data_type: str = "daily") -> Dict[str, Any]:
         """
         사용자의 최근 수면 데이터를 가져오는 편의 메서드
-        
-        Args:
-            user_id: 사용자 ID
-            days: 최근 몇 일간의 데이터를 가져올지 지정
-            data_type: 데이터 유형
-            
-        Returns:
-            최근 수면 데이터
         """
         end_date = datetime.now().strftime("%Y-%m-%d")
         start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-        
-        return self._run(user_id, start_date, end_date, data_type)
+        logger.debug(f"get_recent_data called for id: {id} with start_date: {start_date} and end_date: {end_date}, data_type: {data_type}")
+        result = self._run(id, start_date, end_date, data_type)
+        logger.debug(f"get_recent_data result: {result}")
+        return result
