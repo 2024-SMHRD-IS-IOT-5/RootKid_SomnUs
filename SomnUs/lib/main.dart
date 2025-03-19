@@ -16,6 +16,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+        debugShowCheckedModeBanner: false,
         locale: Locale('ko', 'KR'),
         //한국어 설정
         supportedLocales: [

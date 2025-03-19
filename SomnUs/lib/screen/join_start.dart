@@ -24,7 +24,7 @@ class JoinStartPage extends StatelessWidget {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.only(top: 60), // ✅ 전체적으로 위로 올리기
+        padding: const EdgeInsets.only(top: 20), // ✅ 전체적으로 위로 올리기
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start, // ✅ 상단 정렬

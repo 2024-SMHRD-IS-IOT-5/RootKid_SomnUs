@@ -4,12 +4,15 @@ import 'package:intl/intl.dart';
 import 'package:somnus/model/sleep_daily_data.dart';
 import 'package:somnus/model/sleep_weekly_data.dart';
 import 'package:somnus/screen/sleep_weekly_screen.dart';
+import 'package:somnus/model/sleep_monthly_data.dart';
+import 'package:somnus/screen/sleep_monthly_screen.dart';
 import 'package:somnus/services/auth_service.dart';
 
 
 class ReportPage extends StatefulWidget {
   final String date;
-  const ReportPage({Key? key, required this.date}) : super(key:key);
+  final bool showBackButton; // 뒤로가기 버튼 표시 여부 추가
+  const ReportPage({Key? key, required this.date, this.showBackButton = false}) : super(key:key);
 
   @override
   State<ReportPage> createState() => _ReportPageState();
@@ -24,17 +27,20 @@ class _ReportPageState extends State<ReportPage> {
 
   late Future<DailySleepDataResponse> futureSleepData; // ✅ sleep_screen.dart에서 API 호출
   late Future<WeeklySleepDataResponse> futureWeeklySleepData;
+  late Future<MonthlySleepDataResponse> futureMonthlyData;
 
   final List<String> weekList = [
+    "2월 1주차",
+    "2월 2주차",
+    "2월 3주차",
     "2월 4주차",
     "3월 1주차",
     "3월 2주차",
     "3월 3주차",  // 기본값 index=3
-    "3월 4주차",
-    "4월 1주차"
+
   ];
 
-  int selectedWeekIndex = 3; // 기본값 3월 3주차
+  int selectedWeekIndex = 5; // 기본값 3월 3주차
 
 
   @override
@@ -47,7 +53,7 @@ class _ReportPageState extends State<ReportPage> {
     selectedDate = DateFormat("yyyy-MM-dd").parse(widget.date);
     // 초기날짜를 위젯의 date값으로 설정
     String dateStr = DateFormat("yyyy-MM-dd").format(selectedDate);
-    futureWeeklySleepData = fetchWeeklySleepData();
+    futureWeeklySleepData = fetchWeeklySleepData(weekList[selectedWeekIndex]);
   }
 
   @override
@@ -82,18 +88,6 @@ class _ReportPageState extends State<ReportPage> {
       futureSleepData = fetchDailySleepData(dateStr); // ✅ 날짜 변경 후 API 다시 호출
     });
   }
-
-
-  //
-  // // ✅ API에서 받은 날짜를 DateTime으로 변환하는 함수
-  // DateTime parseApiDate(String dateString) {
-  //   try {
-  //     return DateFormat("yyyy년 MM월 dd일", "ko_KR").parse(dateString);
-  //   } catch (e) {
-  //     // 변환 실패 시 기본값 반환 (현재 날짜)
-  //     return DateTime.now();
-  //   }
-  // }
 
 
   // ✅ 오전/오후를 구분하여 HH:MM 형식으로 변환
@@ -144,11 +138,22 @@ class _ReportPageState extends State<ReportPage> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
+          // ReportPage 전용 뒤로가기 버튼 영역(조건부 표시)
+          if (widget.showBackButton)
+            SafeArea(
+              child: Row(
+                children: [IconButton(onPressed: (){
+                  Navigator.pop(context);
+                }, icon: const Icon(Icons.arrow_back))]
+              ),
+            ),
+          //  (2) 일 주 월 버튼 (AnimatedContainer)
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             height: _isAppBarVisible ? 60 : 0,
             child: _buildReportTypeSelector(),
           ),
+          // (3) Expanded 영역에서 SingleChildScrollView
           Expanded(
             child: FutureBuilder<DailySleepDataResponse>(
               future: futureSleepData,
@@ -279,7 +284,7 @@ class _ReportPageState extends State<ReportPage> {
         return _buildDailyReport(data, chatbotResponse);
       case "주":
         return FutureBuilder<WeeklySleepDataResponse>(
-          future: fetchWeeklySleepData(), // ✅ 주간 데이터 API 호출
+          future: fetchWeeklySleepData(weekList[selectedWeekIndex]), // ✅ 주간 데이터 API 호출
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -290,11 +295,42 @@ class _ReportPageState extends State<ReportPage> {
             }
 
             WeeklySleepData sleepData = snapshot.data!.sleepData; // ✅ 데이터 가져오기
-            return WeeklySleepChart(data : sleepData); // ✅ `WeeklySleepScreen`을 사용
+            List<String> chatbotResponseList = snapshot.data!.chatbotResponse;
+            return SingleChildScrollView(
+              controller: _scrollController,
+              child: WeeklySleepChart(
+                  data : sleepData,
+              weekList: weekList,  // ReportPage에 정의된 주차 리스트
+              selectedWeekIndex: selectedWeekIndex,
+              chatbotResponse : chatbotResponseList,
+              onChangeWeek: (int offset){
+                    setState(() {
+                      int newIndex = selectedWeekIndex + offset;
+                      if (newIndex >= 0 && newIndex < weekList.length){
+                        selectedWeekIndex = newIndex;
+                      }
+                    });
+              },),
+            ); // ✅ `WeeklySleepScreen`을 사용
           },
         );
       case "월":
-        return const Center(child: Text("월간 보고서 페이지 (추후 구현 필요)"));
+        return FutureBuilder<MonthlySleepDataResponse>(
+          future: fetchMonthlySleepData(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('에러 발생: ${snapshot.error}'));
+            } else if (!snapshot.hasData) {
+              return const Center(child: Text("수면 데이터 없음"));
+            }
+            SleepDataMonthly sleepData = snapshot.data!.sleepData;
+            return SingleChildScrollView(
+              controller: _scrollController,
+                child: MonthlySleepChart(data: sleepData));
+          },
+        );
       default:
         return _buildDailyReport(data, chatbotResponse);
     }
@@ -317,16 +353,6 @@ class _ReportPageState extends State<ReportPage> {
     );
   }
 
-  /// **📌 주간 보고서**
-  Widget _buildWeeklyReport() {
-    return const WeeklySleepDataScreen();
-  }
-
-  /// **📌 월간 보고서 (추후 구현)**
-  Widget _buildMonthlyReport() {
-    return const Center(child: Text("월간 보고서 페이지 (추후 구현 필요)"));
-  }
-
   /// **📌 수면 데이터 박스**
   Widget _buildSleepStats(DailySleepData data) {
     return Container(
@@ -340,9 +366,9 @@ class _ReportPageState extends State<ReportPage> {
           _divider(),
           _buildStatRow("깊은 수면", data.deepSleep),
           _divider(),
-          _buildStatRow("일어난 시간", formatTime(data.endDt)),
-          _divider(),
           _buildStatRow("잠든 시간", formatTime(data.startDt)),
+          _divider(),
+          _buildStatRow("일어난 시간", formatTime(data.endDt)),
         ],
       ),
     );

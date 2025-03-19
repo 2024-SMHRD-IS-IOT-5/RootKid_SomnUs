@@ -105,7 +105,7 @@ Future<DailySleepDataResponse> fetchDailySleepData(String date) async {
   }
 
   final response = await http.get(
-    Uri.parse('http://192.168.219.211:8001/sleep-data/calendar?date=$date'),
+    Uri.parse('http://192.168.219.211:8001/sleep-data/report?date=$date'),
     headers: {'Authorization': 'Bearer $token'},
 
   );

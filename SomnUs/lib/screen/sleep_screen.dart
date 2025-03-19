@@ -56,7 +56,7 @@ class SleepDataResponse {
   factory SleepDataResponse.fromJson(Map<String, dynamic> json) {
     final dynamic chatbotResp = json['chatbot_response'];
     String chatbotResponse =
-        chatbotResp is String ? chatbotResp : jsonEncode(chatbotResp);
+    chatbotResp is String ? chatbotResp : jsonEncode(chatbotResp);
     return SleepDataResponse(
       sleepData: SleepData.fromJson(json['sleep_data']),
       chatbotResponse: chatbotResponse,
@@ -124,7 +124,7 @@ class _SleepDataScreenState extends State<SleepDataScreen> {
               return Text('에러: ${snapshot.error}');
             } else {
               SleepDataResponse responseData =
-                  snapshot.data!; // ✅ SleepDataResponse로 변경
+              snapshot.data!; // ✅ SleepDataResponse로 변경
               SleepData data = responseData.sleepData;
               String chatbotResponse = responseData.chatbotResponse;
               print("📡 챗봇 응답 데이터: $chatbotResponse");

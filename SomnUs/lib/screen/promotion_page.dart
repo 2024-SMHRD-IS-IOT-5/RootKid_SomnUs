@@ -9,7 +9,7 @@ class PromotionPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF141932),
         title: const Text(
-          '프로모션',
+          '수면 제품',
           style: TextStyle(
             color: Colors.white,
             fontSize: 22,
@@ -19,90 +19,116 @@ class PromotionPage extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pop(context); // 뒤로 가기
+            Navigator.pop(context);
           },
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // 프로모션 1: 제품 추천 및 할인 쿠폰 제공
-          _buildPromotionCard(
-            context,
-            '수면 개선 제품 추천 + 할인 쿠폰',
-            '수면 제품을 추천하고, 할인 쿠폰을 제공하여 수면의 질을 향상시키세요!',
-            '추천 제품과 함께 10% 할인 쿠폰 제공',
-          ),
-
-          // 프로모션2: 수면 목표 달성 시 기프트카드 제공
-          _buildPromotionCard(
-            context,
-            '수면 목표 달성 기프트카드 제공',
-            '"목표 수면 시간을 달성하면 기프트카드를 증정합니다! 정해진 수면 시간을 꾸준히 유지하세요.!',
-            '수면 목표 달성 시 기프트카드 증정',
-          ),
-
-          // 프로모션 3: 제품 리뷰 + 소셜 미디어 캠페인
-          _buildPromotionCard(
-            context,
-            '제품 리뷰 + 소셜 미디어 참여',
-            '수면 제품을 사용하고 SNS에 후기를 올리면 경품을 받을 수 있어요!',
-            '후기 작성 시 추첨을 통해 경품 제공',
-          ),
-
-          // 프로모션 4: 수면 관련 콘텐츠 제공 + 제품 홍보
-          _buildPromotionCard(
-            context,
-            '수면 관련 콘텐츠 제공',
-            '수면 개선 팁과 추천 제품을 콘텐츠와 함께 제공해요!',
-            '수면 개선 콘텐츠 내 제품 추천',
-          ),
-
-          // 프로모션 5: 무료 수면 분석과 추천 제품 연계
-          _buildPromotionCard(
-            context,
-            '수면 분석 + 추천 제품 연계',
-            '수면 분석 후 맞춤형 제품을 추천받고 할인 혜택을 받아보세요!',
-            '수면 분석 후 할인 혜택 제공',
-          ),
-        ],
+      body: Container(
+        color: Colors.white,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildPromotionCard(
+              '프리미엄 메모리폼 매트리스',
+              '편안한 숙면을 위한 고급 메모리폼 매트리스!',
+              '매트리스 15% 할인',
+              'images/mattress.png',
+            ),
+            _buildPromotionCard(
+              '천연 실크 수면 안대',
+              '부드러운 실크로 제작된 프리미엄 안대.',
+              '사은품 증정',
+              'images/sleep_mask.png',
+            ),
+            _buildPromotionCard(
+              '알러지 방지 기능성 이불',
+              '알러지 걱정 없는 깨끗한 소재.',
+              '20% 할인 적용',
+              'images/blanket.png',
+            ),
+            _buildPromotionCard(
+              '스마트 수면 베개',
+              '개인 맞춤형 스마트 베개로 숙면 유도.',
+              '무료 배송 이벤트',
+              'images/pillow.png',
+            ),
+            _buildPromotionCard(
+              '아로마테라피 디퓨저',
+              '숙면을 위한 아로마 향기 디퓨저.',
+              '전 제품 10% 할인',
+              'images/diffuser.png',
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // 프로모션 카드 위젯
-  Widget _buildPromotionCard(BuildContext context, String title, String description, String benefit) {
+  Widget _buildPromotionCard(
+      String title,
+      String description,
+      String benefit,
+      String imageAsset,
+      ) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 10),
       elevation: 5,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF141932),
-              ),
+      // GestureDetector나 InkWell이 필요 없다면 제거
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 상단 이미지 영역
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
             ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: const TextStyle(fontSize: 16, color: Color(0x99000000)),
+            child: Image.asset(
+              imageAsset,
+              // 가로 폭에 맞춰서 꽉 채우고, 세로 높이는 고정값(또는 원하는 높이)으로 설정
+              width: double.infinity,
+              height: 180,
+              fit: BoxFit.cover,
             ),
-            const SizedBox(height: 12),
-            Text(
-              benefit,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+          ),
+          // 텍스트 영역
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF141932),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Color(0x99000000),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  benefit,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

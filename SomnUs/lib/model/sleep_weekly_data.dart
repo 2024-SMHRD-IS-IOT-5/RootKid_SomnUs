@@ -12,6 +12,7 @@ class WeeklySleepData {
   final String avg_sleep_time;
   final int avg_sleep_score;
   final String week_number;
+  final String aggregation_type;
 
   // 일별 데이터 (월요일 ~ 일요일)
   final int mon_score;
@@ -28,6 +29,8 @@ class WeeklySleepData {
   final String sat_time;
   final int sun_score;
   final String sun_time;
+  final List<String> chatbotResponse;
+
 
   WeeklySleepData({
     required this.avg_deep_sleep,
@@ -36,6 +39,7 @@ class WeeklySleepData {
     required this.avg_sleep_time,
     required this.avg_sleep_score,
     required this.week_number,
+    required this.aggregation_type,
     required this.mon_score,
     required this.mon_time,
     required this.tue_score,
@@ -50,9 +54,21 @@ class WeeklySleepData {
     required this.sat_time,
     required this.sun_score,
     required this.sun_time,
+    required this.chatbotResponse
   });
 
   factory WeeklySleepData.fromJson(Map<String, dynamic> json) {
+    // 🔹 `chatbot_response`가 List인지 확인하고 변환
+    List<String> chatbotResponse = [];
+    if (json["chatbot_response"] is List) {
+      chatbotResponse = List<String>.from(json["chatbot_response"]);
+    } else if (json["chatbot_response"] is String) {
+      try {
+        chatbotResponse = List<String>.from(jsonDecode(json["chatbot_response"]));
+      } catch (e) {
+        chatbotResponse = ["챗봇 응답을 분석할 수 없습니다"];
+      }
+    }
     return WeeklySleepData(
       avg_deep_sleep: json['avg_deep_sleep'],
       avg_light_sleep: json['avg_light_sleep'],
@@ -60,6 +76,7 @@ class WeeklySleepData {
       avg_sleep_time: json['avg_sleep_time'],
       avg_sleep_score: json['avg_sleep_score'],
       week_number: json['week_number'],
+      aggregation_type: json['aggregation_type'],
       mon_score: json['mon_score'],
       mon_time: json['mon_time'],
       tue_score: json['tue_score'],
@@ -74,6 +91,7 @@ class WeeklySleepData {
       sat_time: json['sat_time'],
       sun_score: json['sun_score'],
       sun_time: json['sun_time'],
+      chatbotResponse: chatbotResponse
     );
   }
 }
@@ -81,16 +99,26 @@ class WeeklySleepData {
 /// 챗봇 응답을 포함한 모델
 class WeeklySleepDataResponse {
   final WeeklySleepData sleepData;
-  final String chatbotResponse;
+  final List<String> chatbotResponse;
 
-
-  WeeklySleepDataResponse({required this.sleepData, required this.chatbotResponse});
+  WeeklySleepDataResponse({
+    required this.sleepData,
+    required this.chatbotResponse,
+  });
 
   factory WeeklySleepDataResponse.fromJson(Map<String, dynamic> json) {
     // chatbot_response가 Map이면 jsonEncode를 통해 문자열로 변환
     final dynamic chatbotResp = json['chatbot_response'];
-    String chatbotResponse =
-        chatbotResp is String ? chatbotResp : jsonEncode(chatbotResp);
+    List<String> chatbotResponse = [];
+    if (chatbotResp is List) {
+      chatbotResponse = List<String>.from(chatbotResp);
+    } else if (chatbotResp is String) {
+      try {
+        chatbotResponse = List<String>.from(jsonDecode(chatbotResp));
+      } catch (e) {
+        chatbotResponse = ["챗봇 응답을 분석할 수 없습니다"];
+      }
+    }
     return WeeklySleepDataResponse(
       sleepData: WeeklySleepData.fromJson(json),
       chatbotResponse: chatbotResponse,
@@ -99,13 +127,17 @@ class WeeklySleepDataResponse {
 }
 
 /// API 호출 함수: FastAPI의 /sleep-data/weekly 엔드포인트를 호출하여 평탄화된 JSON 데이터를 반환
-Future<WeeklySleepDataResponse> fetchWeeklySleepData() async {
+Future<WeeklySleepDataResponse> fetchWeeklySleepData(
+  String selectedWeek,
+) async {
   String? token = AuthService().getToken();
   if (token == null) {
     throw Exception("로그인이 필요합니다.");
   }
   final response = await http.get(
-    Uri.parse('http://192.168.219.211:8001/sleep-data/weekly'),
+    Uri.parse(
+      'http://192.168.219.211:8001/sleep-data/weekly?date=$selectedWeek',
+    ),
     headers: {'Authorization': 'Bearer $token'},
   );
 
@@ -139,7 +171,7 @@ class _SleepDataScreenState extends State<WeeklySleepDataScreen> {
   @override
   void initState() {
     super.initState();
-    futureWeeklySleepData = fetchWeeklySleepData();
+    futureWeeklySleepData = fetchWeeklySleepData("3월 2주차");
   }
 
   @override
@@ -157,7 +189,6 @@ class _SleepDataScreenState extends State<WeeklySleepDataScreen> {
             } else {
               WeeklySleepDataResponse responseData = snapshot.data!;
               WeeklySleepData data = responseData.sleepData;
-              String chatbotResponse = responseData.chatbotResponse;
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -263,7 +294,6 @@ class _SleepDataScreenState extends State<WeeklySleepDataScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(chatbotResponse, style: const TextStyle(fontSize: 16)),
                   ],
                 ),
               );

@@ -1,34 +1,57 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:http/http.dart' as http;
 import 'package:somnus/model/sleep_today_data.dart';
 import 'package:somnus/services/auth_service.dart';
 import 'package:somnus/screen/report_page.dart';
 import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:somnus/screen/nfc_screen.dart';
 
-// ✅ API에서 데이터 가져오기
-Future<DailySleepDataResponse> fetchDailySleepData() async {
+
+// 월별 데이터 불러오기
+Future<Map<DateTime, int>> fetchMonthlyData(String month) async {
+  // month = '2025-02' 형태
   String? token = AuthService().getToken();
 
   if (token == null) {
     throw Exception("로그인이 필요합니다.");
   }
 
+  final url = 'http://192.168.219.211:8001/sleep-data/calendar?date=$month';
+
   final response = await http.get(
-    Uri.parse('http://192.168.219.211:8001/sleep-data'),
-    headers: {'Authorization': 'Bearer $token'},
+    Uri.parse(url),
+    headers: {'Authorization' : 'Bearer $token'}
   );
 
   if (response.statusCode == 200) {
     final decodeBody = utf8.decode(response.bodyBytes);
     final Map<String, dynamic> jsonResponse = json.decode(decodeBody);
-    return DailySleepDataResponse.fromJson(jsonResponse);
+
+    // 반환할 Map
+    final Map<DateTime, int> dailyScores = {};
+
+    // "calendar_data" 배열에서 각 항목 파싱
+    if (jsonResponse.containsKey("calendar_data")) {
+      for (var item in jsonResponse["calendar_data"]) {
+        // item["date"]: "2025-03-01", item["sleep_score"]: 85
+        final dateString = item["date"] as String;
+        final sleepScore = item["sleep_score"] as int;
+
+        DateTime dateTime = DateTime.parse(dateString);
+        dailyScores[dateTime] = sleepScore;
+      }
+    }
+
+    return dailyScores;
   } else {
-    throw Exception("수면 데이터를 불러오는데 실패했습니다.");
+    throw Exception("월별 수면 데이터를 불러오는데 실패했습니다. 상태코드: ${response.statusCode}");
   }
 }
+
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -38,65 +61,111 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  late NfcWebSocketService nfcWebSocketService;
   late Future<DailySleepDataResponse> futureSleepData;
-  DateTime selectedMonth = DateTime(2025, 2, 1);
+  // 현재 포커스 된 달
+  DateTime focusedMonth = DateTime.now();
+  // API로 받아온 일자별 점수
+  Map<DateTime, int> dailyScores = {};
 
   @override
   void initState() {
     super.initState();
     futureSleepData = fetchDailySleepData();
+    _loadMonthlyData(focusedMonth);
+    // 앱 실행 시 자동으로 WebSocket 연결 및 NFC 상태 수신 시작
+    nfcWebSocketService = NfcWebSocketService();
+    nfcWebSocketService.listenForNfc(context);
+
   }
+
+
+  Future<void> _loadMonthlyData(DateTime month) async {
+    final formattedMonth = DateFormat('yyyy.MM').format(month); // ex: "2025-03"
+    try {
+      final scores = await fetchMonthlyData(formattedMonth);
+      setState(() {
+        dailyScores = scores;
+      });
+      print(dailyScores); // 디버깅 출력
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  // 점수에 따른 색상 지정
+  Color getScoreColor(int score) {
+    if (score <= 25) {
+      return Color(0xFFFF7675);
+    } else if (score <= 50) {
+      return Color(0xFFfdcb6e);
+    } else if (score <= 75) {
+      return Color(0xff55efc4);
+    }else{
+      return Color(0xff74b9ff);
+    }
+  }
+
+  @override
+  void dispose() {
+    nfcWebSocketService.dispose();
+    super.dispose();
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: FutureBuilder<DailySleepDataResponse>(
-        future: futureSleepData,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("에러: ${snapshot.error}"));
-          } else if (!snapshot.hasData) {
-            return const Center(child: Text("데이터가 없습니다."));
-          }
-
-          // ✅ API 데이터 할당
-          DailySleepData data = snapshot.data!.sleepData;
-          String chatbotComment = snapshot.data!.chatbotResponse;
-
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ✅ 오늘의 수면 요약
-                  SleepSummaryWidget(
-                    sleepTime: data.sleepTime,
-                    sleepScore: data.sleepScore,
-                    chatbotComment: chatbotComment,
-                  ),
-                  const SizedBox(height: 30),
-
-                  const Text(
-                    "수면 분석 및 통계",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // ✅ 수면 분석 및 통계
-                  _buildSleepStats(data),
-                  const SizedBox(height: 20),
-
-                  // ✅ 수면 캘린더
-                  _buildSleepCalendar(),
-                ],
+      body: SafeArea(
+        child: FutureBuilder<DailySleepDataResponse>(
+          future: futureSleepData,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text("에러: ${snapshot.error}"));
+            } else if (!snapshot.hasData) {
+              return const Center(child: Text("데이터가 없습니다."));
+            }
+        
+            // ✅ API 데이터 할당
+            DailySleepData data = snapshot.data!.sleepData;
+            String chatbotComment = snapshot.data!.chatbotResponse;
+        
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ✅ 오늘의 수면 요약
+                    SleepSummaryWidget(
+                      sleepTime: data.sleepTime,
+                      sleepScore: data.sleepScore,
+                      chatbotComment: chatbotComment,
+                    ),
+                    const SizedBox(height: 30),
+        
+                    const Text(
+                      "수면 분석 및 통계",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+        
+                    // ✅ 수면 분석 및 통계
+                    _buildSleepStats(data),
+                    const SizedBox(height: 20),
+        
+                    // ✅ 수면 캘린더
+                    _buildSleepCalendar(),
+                    const SizedBox(height: 20)
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -147,80 +216,157 @@ class _HomePageState extends State<HomePage> {
 
   // 📌 수면 캘린더 (월 변경 가능)
   Widget _buildSleepCalendar() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 4,
-            offset: const Offset(2, 2),
+    return TableCalendar(
+      locale: 'ko_KR',   // 한글로 설정
+      firstDay: DateTime.utc(2020, 1, 1),
+      lastDay: DateTime.utc(2030, 12, 31),
+      focusedDay: focusedMonth,
+      calendarFormat: CalendarFormat.month,
+
+      // 날짜 선택 시 ReportPage로 이동
+      onDaySelected: (selectedDay, focusedDay) {
+        String selectedDate = DateFormat('yyyy-MM-dd').format(selectedDay);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReportPage(date: selectedDate, showBackButton: true,),
           ),
-        ],
+        );
+      },
+
+      // 달이 변경될 때 새로운 월 데이터 로드
+      onPageChanged: (focusedDay) {
+        setState(() {
+          focusedMonth = focusedDay;
+        });
+        _loadMonthlyData(focusedMonth);
+      },
+
+      headerStyle: HeaderStyle(
+        formatButtonVisible: false,   // 2weeks 숨김
+        titleCentered: true,
       ),
-      child: Column(
-        children: [
-          // 📌 상단 월 변경 버튼
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () => _changeMonth(-1),
-              ),
-              Text(
-                "${selectedMonth.year}.${selectedMonth.month.toString().padLeft(2, '0')}",
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () => _changeMonth(1),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
 
-          // 📌 캘린더 위젯 (날짜 선택 시 보고서 페이지로 이동)
-          SfDateRangePicker(
-            view: DateRangePickerView.month,
-            selectionMode: DateRangePickerSelectionMode.single,
-            initialSelectedDate: selectedMonth,
-            onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-              if (args.value is DateTime) {
-                String selectedDate = DateFormat("yyyy-MM-dd").format(args.value);
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ReportPage(date: selectedDate),
+      // 날짜 셀 커스터마이징
+      calendarBuilders: CalendarBuilders(
+        // 해당 오늘 날짜에 대한 효과 (점수 색깔, 수면 점수 나타내기)
+        todayBuilder: (context, date, _) {
+          final score = dailyScores[DateTime(date.year, date.month, date.day)];
+          if (score != null){
+            return Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.rectangle,
+                border: Border.all(color: Colors.blueAccent, width: 1)
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // (1) 날짜 숫자
+                  Text(
+                    '${date.day}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black, // 날짜 색상
+                    ),
                   ),
-                );
-              }
-            },
-            onViewChanged: (DateRangePickerViewChangedArgs args) {
-              setState(() {
-                if (args.visibleDateRange.startDate != null) {
-                  selectedMonth = DateTime(
-                    args.visibleDateRange.startDate!.year,
-                    args.visibleDateRange.startDate!.month,
-                    1,
-                  );
-                }
-              });
-            },
-          ),
-        ],
+                  const SizedBox(height: 4),
+
+                  // (2) 점수 + 색상 원
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 색상 원
+                      Container(
+                        width: 6,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: getScoreColor(score),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+
+                      // 점수 텍스트
+                      Text(
+                        '$score점',
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          } else {
+            // 점수가 없는 날짜
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${date.day}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                // 아래 공간은 비워둠 (점수가 없으므로)
+              ],
+            );
+          }
+        },
+        defaultBuilder: (context, date, _) {
+          // 날짜만 비교할 수 있도록 year, month, day로 구성
+          final score = dailyScores[DateTime(date.year, date.month, date.day)];
+          if (score != null) {
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // (1) 날짜 숫자
+                Text(
+                  '${date.day}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black, // 날짜 색상
+                  ),
+                ),
+                const SizedBox(height: 4),
+
+                // (2) 점수 + 색상 원
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // 색상 원
+                    Container(
+                      width: 6,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: getScoreColor(score),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+
+                    // 점수 텍스트
+                    Text(
+                      '$score점',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          } else {
+            // 점수가 없는 날짜
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${date.day}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                // 아래 공간은 비워둠 (점수가 없으므로)
+              ],
+            );
+          }
+        },
       ),
     );
-  }
-
-  // 📌 월 변경 함수
-  void _changeMonth(int offset) {
-    setState(() {
-      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + offset, 1);
-    });
   }
 }
 
@@ -319,8 +465,8 @@ class SleepSummaryWidget extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         SizedBox(
-          width: 180,
-          height: 180,
+          width: 172,
+          height: 172,
           child: SfCircularChart(
             series: <CircularSeries>[
               DoughnutSeries<_ChartData, String>(
