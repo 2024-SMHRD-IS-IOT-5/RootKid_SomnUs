@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:somnus/services/auth_service.dart';
+import 'package:somnus/config/config.dart';
 
 class NfcWebSocketService {
   late final IOWebSocketChannel channel;
@@ -13,7 +14,7 @@ class NfcWebSocketService {
       throw Exception("로그인 토큰이 없습니다.");
     }
     channel = IOWebSocketChannel.connect(
-      Uri.parse('ws://192.168.219.211:8001/nfc'),
+      Uri.parse('${Web.webUrl}/nfc'),
       headers: {
         'Authorization': 'Bearer $token',
       },

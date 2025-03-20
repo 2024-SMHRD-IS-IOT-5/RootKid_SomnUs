@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:http/http.dart' as http;
+import 'package:somnus/config/config.dart';
 
 class AuthService {
-  final String baseUrl = "http://192.168.219.211:8001";
+  final String baseUrl = "${Config.baseUrl}";
   // ✅ 토큰을 저장할 변수 (앱이 실행되는 동안 유지됨)
   static String? _token;
   static Map<String, dynamic>? _decodedToken;

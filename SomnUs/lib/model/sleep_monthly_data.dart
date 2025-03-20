@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:somnus/services/auth_service.dart';
+import 'package:somnus/config/config.dart';
 
 /// 월간 데이터와 주간 데이터를 담는 모델 클래스
 class SleepDataMonthly {
@@ -111,7 +112,7 @@ Future<MonthlySleepDataResponse> fetchMonthlySleepData() async {
     throw Exception("로그인이 필요합니다.");
   }
   final response = await http.get(
-    Uri.parse('http://192.168.219.211:8001/sleep-data/monthly'),
+    Uri.parse('${Config.baseUrl}/sleep-data/monthly'),
     headers: {'Authorization': 'Bearer $token'},
   );
 

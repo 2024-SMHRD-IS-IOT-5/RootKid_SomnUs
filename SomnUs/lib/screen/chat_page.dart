@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
+import 'package:somnus/config/config.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -15,7 +16,7 @@ class _ChatPageState extends State<ChatPage> {
   final ScrollController _scrollController =
       ScrollController(); // ✅ 스크롤 컨트롤러 추가
   final _channel = WebSocketChannel.connect(
-    Uri.parse('ws://192.168.219.211:8001/ws'), // ✅ WebSocket 서버 주소
+    Uri.parse('${Web.webUrl}/ws'), // ✅ WebSocket 서버 주소
   );
 
   List<ChatMessage> messages = [];

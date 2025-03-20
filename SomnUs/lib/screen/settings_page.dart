@@ -33,7 +33,6 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
   // 알림 설정 상태
   Map<String, bool> _notificationSettings = {
     "푸시 알림": true,
-    "야간 모드": false,
     "수면 분석 알림": true,
   };
 
@@ -101,7 +100,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
               _buildExpandableTile("알림 설정", "알림 수신, 세부 설정"),
               _buildAnimatedExpandedContent(
                 "알림 설정",
-                ["푸시 알림", "야간 모드", "수면 분석 알림"],
+                ["푸시 알림", "수면 분석 알림"],
                 isNotificationSection: true,
               ),
 
@@ -122,7 +121,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
               // 프로모션 (별도 페이지로 이동)
               _buildNavigationTile(
                 title: "수면 제품",
-                subtitle: "수면 제품 및 특별혜택",
+                subtitle: "이벤트 및 특별 혜택",
                 onTap: () {
                   Navigator.push(
                     context,

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:somnus/services/auth_service.dart';
+import 'package:somnus/config/config.dart';
 
 // ✅ 수면 데이터 모델 정의
 class DailySleepData {
@@ -105,7 +106,7 @@ Future<DailySleepDataResponse> fetchDailySleepData(String date) async {
   }
 
   final response = await http.get(
-    Uri.parse('http://192.168.219.211:8001/sleep-data/report?date=$date'),
+    Uri.parse('${Config.baseUrl}/sleep-data/report?date=$date'),
     headers: {'Authorization': 'Bearer $token'},
 
   );

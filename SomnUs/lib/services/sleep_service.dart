@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';  // ✅ JWT 토큰 저장용
+import 'package:somnus/config/config.dart';
 
 class SleepService {
-  final String baseUrl = "http://192.168.219.211:8001";  // FastAPI 서버 주소
+  final String baseUrl = "${Config.baseUrl}";  // FastAPI 서버 주소
 
   Future<Map<String, dynamic>> fetchSleepData(String userId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

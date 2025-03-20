@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:somnus/services/auth_service.dart';
+import 'package:somnus/config/config.dart';
 
 /// 수면 데이터 모델 정의 (모든 필드를 평탄한 객체 형태로 처리)
 class WeeklySleepData {
@@ -136,7 +137,7 @@ Future<WeeklySleepDataResponse> fetchWeeklySleepData(
   }
   final response = await http.get(
     Uri.parse(
-      'http://192.168.219.211:8001/sleep-data/weekly?date=$selectedWeek',
+      '${Config.baseUrl}/sleep-data/weekly?date=$selectedWeek',
     ),
     headers: {'Authorization': 'Bearer $token'},
   );

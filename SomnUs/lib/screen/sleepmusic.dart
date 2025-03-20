@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:somnus/config/config.dart';
 
 
 class SleepMusicScreen extends StatefulWidget {
@@ -50,7 +51,7 @@ class _SleepMusicScreenState extends State<SleepMusicScreen> {
   Future<void> _sendMusicStateToServer(String serverMsg, bool isPlaying) async {
     final action = isPlaying? "play" : "pause";
     // 실제 서버 URL 및 파라미터는 백엔드에 맞춰 수정 필요
-    final url = Uri.parse('http://192.168.219.211:8001/stream?title=$serverMsg&action=$action');
+    final url = Uri.parse('${Config.baseUrl}/stream?title=$serverMsg&action=$action');
 
     // 예: {"music": "piano_sound", "action": "play"} or "pause"
     final bodyData = {

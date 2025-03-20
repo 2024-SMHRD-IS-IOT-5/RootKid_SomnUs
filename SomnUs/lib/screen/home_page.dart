@@ -8,6 +8,7 @@ import 'package:somnus/screen/report_page.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:somnus/screen/nfc_screen.dart';
+import 'package:somnus/config/config.dart';
 
 
 // 월별 데이터 불러오기
@@ -19,7 +20,7 @@ Future<Map<DateTime, int>> fetchMonthlyData(String month) async {
     throw Exception("로그인이 필요합니다.");
   }
 
-  final url = 'http://192.168.219.211:8001/sleep-data/calendar?date=$month';
+  final url = '${Config.baseUrl}/sleep-data/calendar?date=$month';
 
   final response = await http.get(
     Uri.parse(url),
@@ -392,6 +393,19 @@ class SleepSummaryWidget extends StatelessWidget {
     if (score <= 75) return Colors.green;
     return Colors.blue;
   }
+  // 수면 점수에 따른 아이콘 변경
+  IconData getScoreIcon(int score) {
+    if (score < 25) {
+      return Icons.sentiment_very_dissatisfied; // 매우 불만
+    } else if (score < 50) {
+      return Icons.sentiment_dissatisfied;      // 불만
+    } else if (score < 75) {
+      return Icons.sentiment_satisfied;         // 보통
+    } else {
+      return Icons.sentiment_very_satisfied;    // 매우 만족
+    }
+  }
+
 
   // ✅ 문자열 sleepTime을 double 값으로 변환하는 함수
   double parseSleepTime(String timeString) {
@@ -412,6 +426,7 @@ class SleepSummaryWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color scoreColor = getSleepScoreColor(sleepScore);
+    IconData scoreIcon = getScoreIcon(sleepScore);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,7 +450,7 @@ class SleepSummaryWidget extends StatelessWidget {
             _buildSleepChart(
               "수면점수",
               "$sleepScore점",
-              Icons.sentiment_satisfied,
+              scoreIcon,
               scoreColor,
               false,
               sleepScore.toDouble(),
