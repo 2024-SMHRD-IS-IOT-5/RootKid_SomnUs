@@ -3,10 +3,9 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
-dotenv_path = os.path.join(os.path.dirname(__file__), "../.env")
-load_dotenv(dotenv_path)
-api_key = os.getenv("OPENAI_API_KEY")
-llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=api_key)
+from app.core.config import API_KEY
+
+llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=API_KEY, temperature=0.5)
 
 
 # 일간 리포트 멘트 작성 함수
@@ -36,9 +35,9 @@ async def daily_report_process(sleep_data):
           "깊은 수면 지속 시간: {deepsleep_duration}초\n"
           "렘 수면 지속 시간: {remsleep_duration}초\n"
           "호흡 곤란 횟수: {breathing_disturbances_intensity}\n\n"
-          "위 데이터를 종합하여 오늘의 전반적인 수면을 한 문장으로 평가해줘.\n"
-          "그리고 언급할만한 특이사항이 있다면 그것도 한 문장으로 적어줘.\n"
-          "특히 특이사항에 대한 개선 방향도 구체적으로 알려줘\n"
+          "위 데이터를 종합하여 오늘의 전반적인 수면을 짧게 평가한 뒤,.\n"
+          "언급할만한 특이사항이 있다면 작성해주고,\n"
+          "특이사항에 대한 개선 방향도 구체적으로 알려줘.\n"
           "청소년들을 위해 친구같은 친근한 어투를 사용해줘."
       )
     ])

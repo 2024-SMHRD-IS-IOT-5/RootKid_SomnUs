@@ -3,6 +3,7 @@ from app.test.weekly import weekly_data_test
 from fastapi import APIRouter
 from app.db.database import db
 
+
 router = APIRouter()
 
 @router.get("/dbtest")

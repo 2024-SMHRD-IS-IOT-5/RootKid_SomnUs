@@ -1,0 +1,91 @@
+이 데이터들은 사용자의 기준 단위별 수면 데이터입니다.
+<key 설명>
+  "aggregation_type": 기준 단위(주간, 월간),
+  "id": 사용자 아이디,
+  "week_number": 주차.(예시: 2025-03-W1 = 2025년 3월 1주차),
+  "month_number": 월차.(예시: 2025-03 = 2025년 3월),
+  "avg_deep_sleep": 평균 깊은 수면 시간,
+  "avg_light_sleep": 평균 얕은 수면 시간,
+  "avg_rem_sleep": 평균 렘 수면 시간,
+  "avg_sleep_score": 평균 수면 점수,
+  "avg_sleep_time": 평균 수면 시간
+[{
+  "aggregation_type": "weekly",
+  "id": "smhrd",
+  "week_number": "2025-03-W1",
+  "avg_deep_sleep": 7671,
+  "avg_light_sleep": 7422,
+  "avg_rem_sleep": 5408,
+  "avg_sleep_score": 50,
+  "avg_sleep_time": 23400
+},
+{
+  "aggregation_type": "weekly",
+  "id": "smhrd",
+  "week_number": "2025-02-W4",
+  "avg_deep_sleep": 6737,
+  "avg_light_sleep": 10217,
+  "avg_rem_sleep": 5288,
+  "avg_sleep_score": 63,
+  "avg_sleep_time": 25125
+},
+{
+  "aggregation_type": "weekly",
+  "id": "smhrd",
+  "week_number": "2025-02-W3",
+  "avg_deep_sleep": 8365,
+  "avg_light_sleep": 5931,
+  "avg_rem_sleep": 5434,
+  "avg_sleep_score": 48,
+  "avg_sleep_time": 22148
+},
+{
+  "aggregation_type": "weekly",
+  "id": "smhrd",
+  "week_number": "2025-01-W4",
+  "avg_deep_sleep": 3120,
+  "avg_light_sleep": 18540,
+  "avg_rem_sleep": 3690,
+  "avg_sleep_score": 59,
+  "avg_sleep_time": 28110
+},
+{
+  "aggregation_type": "weekly",
+  "id": "smhrd",
+  "week_number": "2025-02-W1",
+  "avg_deep_sleep": 4962,
+  "avg_light_sleep": 12342,
+  "avg_rem_sleep": 6411,
+  "avg_sleep_score": 64,
+  "avg_sleep_time": 26151
+},
+{
+  "aggregation_type": "weekly",
+  "id": "smhrd",
+  "week_number": "2025-02-W2",
+  "avg_deep_sleep": 5862,
+  "avg_light_sleep": 6094,
+  "avg_rem_sleep": 4800,
+  "avg_sleep_score": 48,
+  "avg_sleep_time": 18591
+},
+{
+  "aggregation_type": "monthly",
+  "id": "smhrd",
+  "month_number": "2025-02",
+  "avg_deep_sleep": 6481,
+  "avg_light_sleep": 8646,
+  "avg_rem_sleep": 5483,
+  "avg_sleep_score": 55,
+  "avg_sleep_time": 23003
+},
+{
+  "aggregation_type": "weekly",
+  "id": "smhrd",
+  "week_number": "2025-03-W2",
+  "avg_deep_sleep": 3528,
+  "avg_light_sleep": 12902,
+  "avg_rem_sleep": 5016,
+  "avg_sleep_score": 51,
+  "avg_sleep_time": 27412
+}]

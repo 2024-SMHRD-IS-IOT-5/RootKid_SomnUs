@@ -14,7 +14,7 @@ def weekly_report_template(week_info, day_info,count):
     day_template= f"""
     다음은 이번주의 일일 데이터를 dict형태로 담은 list입니다.
     <key 설명>
-    "date" : 오늘 날짜,
+    "date" : 날짜,
     "sleep_score" : 수면 점수,
     "wakeup_count" : 깨어난 횟수,
     "lightsleep_duration" : 얕은 수면 지속 시간
@@ -27,6 +27,7 @@ def weekly_report_template(week_info, day_info,count):
     "rr_min": 최소 호흡 횟수,
     "rr_max": 최대 호흡 횟수,
     "breathing_disturbances_intensity" : 호흡 곤란 횟수
+    <데이터>
     {day_info}
     """
     
@@ -41,6 +42,4 @@ def weekly_report_template(week_info, day_info,count):
     """
     
     template = week_template + day_template + description
-    
-    
     return template
