@@ -35,30 +35,3 @@ async def receive_report(report: dict):
     report_type = report.get("type", "unknown")
     print(f"{report_type} 보고서 수신: {report}")
     return {"message":"보고서 저장 완료"}
-
-
-# @router.get("/chatbot/daily-report")
-# async def get_daily_report():
-#     """챗봇 서버에 일간 보고서 요청"""
-#     report = await chatbot_service.send_report("daily")
-#     if "error" in report:
-#         raise HTTPException(status_code=500, detail=report["error"])
-#     return {"report": report}
-
-# @router.get("/chatbot/weekly-report")
-# async def get_weekly_report():
-#     """챗봇 서버에 주간 보고서 요청"""
-#     report = await chatbot_service.send_report("weekly")
-#     if "error" in report:
-#         raise HTTPException(status_code=500, detail=report["error"])
-#     return {"report": report}
-
-
-# @router.get("/chatbot/monthly-report")
-# async def get_monthly_report():
-#     """챗봇 서버에 월간 보고서 요청"""
-#     report = await chatbot_service.send_report("monthly")
-#     if "error" in report:
-#         raise HTTPException(status_code=500, detail=report["error"])
-#     return {"report": report}
-

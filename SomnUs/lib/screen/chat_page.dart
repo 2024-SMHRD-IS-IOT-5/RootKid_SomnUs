@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
+import 'package:somnus/config/config.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -15,7 +16,7 @@ class _ChatPageState extends State<ChatPage> {
   final ScrollController _scrollController =
       ScrollController(); // ✅ 스크롤 컨트롤러 추가
   final _channel = WebSocketChannel.connect(
-    Uri.parse('ws://192.168.219.211:8001/ws'), // ✅ WebSocket 서버 주소
+    Uri.parse('${Web.webUrl}/ws'), // ✅ WebSocket 서버 주소
   );
 
   List<ChatMessage> messages = [];
@@ -76,8 +77,9 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(56), // AppBar 높이 지정
+        preferredSize: const Size.fromHeight(50), // AppBar 높이 지정
         child: Container(
           decoration: const BoxDecoration(
             color: Colors.white, // ✅ 기존 AppBar 배경색 유지
@@ -112,6 +114,7 @@ class _ChatPageState extends State<ChatPage> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController, // ✅ 스크롤 컨트롤러 연결
+              padding: const EdgeInsets.only(top : 10, bottom: 5),
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
@@ -119,7 +122,7 @@ class _ChatPageState extends State<ChatPage> {
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(
-                    vertical: 4.0,
+                    vertical: 6.0,
                     horizontal: 10.0,
                   ),
                   child: Row(
@@ -159,7 +162,7 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                       ),
                       if (!isChatbot) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         // ✅ 사용자 프로필 아이콘
                         const CircleAvatar(
                           backgroundColor: Colors.grey,
@@ -175,12 +178,12 @@ class _ChatPageState extends State<ChatPage> {
 
           // ✅ 메시지 입력창 & 전송 버튼
           Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.only(left: 10, right: 10, bottom: 10, top: 10),
             child: Row(
               children: [
                 Expanded(
                   child: SizedBox(
-                    height: 41, // ✅ 입력창 높이 줄이기
+                    height: 40, // ✅ 입력창 높이 줄이기
                     child: TextField(
                       controller: _controller,
                       decoration: InputDecoration(

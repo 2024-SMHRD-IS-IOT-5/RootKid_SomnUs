@@ -11,3 +11,7 @@ parents_collection = db["parents"]  # 학부모 컬렉션
 
 sleep_collection = db["sleep"]
 processing_sleep_collection = db["processing_sleep"] # 가공된 수면 정보 컬렉션
+
+musics_collection = db["playlist"]
+chat_collection = db["chat"]
+report_collection = db["reports"]

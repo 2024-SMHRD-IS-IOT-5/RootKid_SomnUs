@@ -153,6 +153,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:somnus/screen/home_page.dart';
 import 'package:somnus/screen/join_start.dart';
 import 'package:somnus/screen/main_navigation.dart';
 import 'package:somnus/services/auth_service.dart';
@@ -184,7 +185,7 @@ class _LoginPageState extends State<LoginPage> {
       // ✅ 로그인 성공 시 MainNavigation으로 이동
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const MainNavigation()),
+        MaterialPageRoute(builder: (context) => const MainNavigation(),)
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,53 +196,71 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFF141932),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              "images/somnus.png",
-              width: 180,
-              height: 180,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "S O M N U S",
-              style: TextStyle(color: Colors.white, fontSize: 32),
-            ),
-            const SizedBox(height: 80),
+      resizeToAvoidBottomInset: true,
+      body: SingleChildScrollView(
+        child: ConstrainedBox(
+          // 화면 높이만큼은 최소로 차지하도록 지정
+          constraints: BoxConstraints(
+            minHeight: mediaQuery.size.height,
+          ),
+          // 자식의 높이를 계산해주는 IntrinsicHeight
+          child: IntrinsicHeight(
+            child: Column(
+              // 내용물을 세로축 중앙에 배치
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // 상단 여백 등 필요하다면 추가
+                const SizedBox(height: 40),
 
-            _buildTextField(controller: _idController, hintText: "아이디를 입력해주세요"),
-            const SizedBox(height: 10),
-            _buildTextField(
-              controller: _passwordController,
-              hintText: "비밀번호를 입력해주세요",
-              isPassword: true,
-            ),
-            const SizedBox(height: 40),
+                Image.asset(
+                  "images/somnus.png",
+                  width: 180,
+                  height: 180,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "S O M N U S",
+                  style: TextStyle(color: Colors.white, fontSize: 32),
+                ),
+                const SizedBox(height: 80),
 
-            _buildButton(
-              text: "로그인",
-              color: const Color(0xFF7D848D),
-              onPressed: _login,
+                _buildTextField(controller: _idController, hintText: "아이디를 입력해주세요"),
+                const SizedBox(height: 10),
+                _buildTextField(
+                  controller: _passwordController,
+                  hintText: "비밀번호를 입력해주세요",
+                  isPassword: true,
+                ),
+                const SizedBox(height: 40),
+
+                _buildButton(
+                  text: "로그인",
+                  color: const Color(0xFF7D848D),
+                  onPressed: _login,
+                ),
+                const SizedBox(height: 15),
+                _buildButton(
+                  text: "회원가입",
+                  color: const Color(0xFF5E86B4),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const JoinStartPage(),
+                      ),
+                    );
+                  },
+                ),
+
+                // 하단 여백 등 필요하다면 추가
+                const SizedBox(height: 40),
+              ],
             ),
-            const SizedBox(height: 15),
-            _buildButton(
-              text: "회원가입",
-              color: const Color(0xFF5E86B4),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const JoinStartPage(),
-                  ),
-                );
-              },
-            ),
-          ],
+          ),
         ),
       ),
     );

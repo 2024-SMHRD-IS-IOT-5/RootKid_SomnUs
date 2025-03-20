@@ -1,51 +1,51 @@
-# app/api/report.py
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import httpx
-from app.core.config import FASTAPI_SERVER_URL
+from typing import Any
+from datetime import datetime, timezone, timedelta
+from pymongo import MongoClient
+
+from app.services.report.daily_report_service import daily_report_process
+from app.services.report.weekly_report_service import weekly_report_process
+from app.services.report.monthly_report_service import monthly_report_process
+from app.db.report_repository import save_report
+
 
 router = APIRouter()
 
 class ReportResponse(BaseModel):
     response: str
 
-# -> str : 어노테이션 : 함수가 반환할 타입 지정, 가독성 높이고 타입검사 할때 도움된대.
-async def send_report(report_type: str) -> str:
-    # 각 리포트 유형에 맞는 응답 메시지 생성
-    response_text = f"{report_type} 리포트 요청에 대한 응답입니다!"
-    payload = {"response": response_text}
-    try:
-        # 메인 서버의 /chatbot/receive-report 엔드포인트로 응답 전송
-        async with httpx.AsyncClient() as client:
-            res = await client.post(f"{FASTAPI_SERVER_URL}/chatbot/receive-report", json=payload)
-            res.raise_for_status()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"응답 전송 실패: {str(e)}")
-    return response_text
+class SleepDataModel(BaseModel):
+    sleep_data: dict[str, Any]
+    
 
-# @router.post("chatbot/daily-report", response_model=ReportResponse)
-# async def daily_report():
-#     result = await send_report("일간")
-#     return ReportResponse(response=result)
-
-# @router.post("chatbot/weekly-report", response_model=ReportResponse)
-# async def weekly_report():
-#     result = await send_report("주간")
-#     return ReportResponse(response=result)
-
-# @router.post("chatbot/monthly-report", response_model=ReportResponse)
-# async def monthly_report():
-#     result = await send_report("월간")
-#     return ReportResponse(response=result)
-
-@router.post("chatbot/{report_type}-report", response_model=ReportResponse)
-async def report(report_type: str):
-    # report_type이 유효한 값인지 검사합니다.
-    valid_types = {"daily": "일간", "weekly": "주간", "monthly": "월간"}
-    if report_type not in valid_types:
-        raise HTTPException(status_code=400, detail="Invalid report type")
-
-    # report_type에 맞는 값을 send_report 함수에 전달합니다.
-    result = await send_report(valid_types[report_type])
-    return ReportResponse(response=result)
+    
+@router.post("")
+async def write_report(sleep_data:dict):
+    """ 메인 서버에서 받은 수면 데이터를 받아서 리포트 생성"""
+    print("=======리포트 작성 시작!========")
+    
+    id = sleep_data["id"]
+    type = sleep_data["aggregation_type"]
+    
+    KST = timezone(timedelta(hours=9))
+    time = datetime.now(KST)
+    
+    if type ==  "daily":
+        result = await daily_report_process(sleep_data)
+        date = sleep_data["date"]
+        
+    elif type == "weekly":
+        result = await weekly_report_process(sleep_data)
+        date = sleep_data["week_number"]
+        # print(len(result))
+        
+    elif type == "monthly":
+        result = await monthly_report_process(sleep_data)
+        date = sleep_data["month_number"]
+        
+    ### 어투변경 llm 함수
+        
+    await save_report(id=id, date=date, comment=result, timestamp=time, type=type)
+    
+    return {f"message" : "{type} 리포트 작성 완료", "result": {"chatbot_response": result}}

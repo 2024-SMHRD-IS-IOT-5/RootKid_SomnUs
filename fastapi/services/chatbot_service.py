@@ -2,16 +2,16 @@
 import httpx
 from core.config import CHATBOT_SERVER_URL
 
-
 class ChatbotService:
     """FastAPI 서버와 LangChain 챗봇 서버 간 HTTP 통신 관리"""
     
-    async def send_message(self, message: str) -> str:
+    async def send_message(self, message:str) -> str:
         """챗봇 서버에 메시지 전송 후 응답 수신"""
+        
         url = f"{CHATBOT_SERVER_URL}/chatbot/message"
         print(f"🚀 FastAPI → 챗봇 서버 메시지 전송: {message}")
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(url, json={"message": message})
                 response.raise_for_status() # HTTP 요청 오류 시 예외 발생
                 chatbot_response = response.json().get("response", "챗봇 응답 오류 발생")
@@ -29,7 +29,7 @@ class ChatbotService:
         url = f"{CHATBOT_SERVER_URL}/chatbot/{report_type}-report"
         print(f"📊 FastAPI → 챗봇 서버 {report_type} 보고서 요청")
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(url)
                 response.raise_for_status()
                 return response.json.get("report", "보고서 생성 오류")

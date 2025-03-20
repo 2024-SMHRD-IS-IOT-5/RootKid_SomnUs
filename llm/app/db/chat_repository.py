@@ -1,13 +1,15 @@
 from app.db.database import db
-from datetime import datetime,timezone
-from zoneinfo import ZoneInfo
+from datetime import datetime, timezone, timedelta
 
 async def save_chat(question: str, response: str):
-    print("잘 불러와짐")
+    
+    KST = timezone(timedelta(hours=9))
+    time = datetime.now(KST)
+    
     chat_data = {
         "question" : question,
         "response" : response,
-        "timestamp" : datetime.now(ZoneInfo("Asia/Seoul")) #UTC 기준 현재 시간
+        "timestamp" : time
     }
-    insert_result = await db.chat.insert_one(chat_data)
+    insert_result = await db["chat"].insert_one(chat_data)
     print("insert 성공! ID: ", insert_result.inserted_id)

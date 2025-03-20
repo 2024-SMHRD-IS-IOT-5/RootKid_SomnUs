@@ -6,8 +6,11 @@ class NFCService:
         # nfc 상태가 변경될 때만 업데이트
         if self.nfc_state != new_state:
             self.nfc_state = new_state
-            print(f"NFC 상태 변경: {self.nfc_state}")
+            print(f"NFC changed: {self.nfc_state}")
             return True
         return False
+    
+    def get_current_state(self):
+        return self.nfc_state
     
 nfc_service = NFCService()

@@ -1,7 +1,8 @@
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:somnus/config/config.dart';
 
 class WebSocketService {
-  final String socketUrl = "ws://192.168.219.211:8001/ws";
+  final String socketUrl = "${Web.webUrl}/ws";
   WebSocketChannel? _channel;
 
   void connect(String token) {
