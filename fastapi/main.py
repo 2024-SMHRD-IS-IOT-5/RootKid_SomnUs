@@ -1,10 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-<<<<<<< HEAD
-
-from controller.db_test import router as db_test_router
-import asyncio
-=======
 from controller.websocket_controller import router as websocket_router
 from controller.device import router as device_router
 from controller.auth import router as auth_router
@@ -25,7 +20,6 @@ async def lifespan(app: FastAPI):
     yield
     # 앱 종료시 스케줄러 종료
     scheduler.shutdown()
->>>>>>> ff82dd1f9194b9ec0c608202852e2c42b1c926fe
 
 # FastAPI 초기화
 app = FastAPI(
@@ -36,9 +30,6 @@ app = FastAPI(
 )
 
 #  라우터 등록
-<<<<<<< HEAD
-app.include_router(db_test_router)
-=======
 app.include_router(websocket_router)
 app.include_router(device_router)
 app.include_router(auth_router)
@@ -48,7 +39,6 @@ app.include_router(sleep_router)
 app.include_router(scheduler_router)
 #app.include_router(withings_auth_router)
 app.include_router(aggregation_router)
->>>>>>> ff82dd1f9194b9ec0c608202852e2c42b1c926fe
 
 # CORS 설정 추가
 app.add_middleware(
@@ -59,22 +49,15 @@ app.add_middleware(
     allow_headers=["*"],  # 모든 헤더 허용
 )
 
-<<<<<<< HEAD
-=======
 @app.get("/")
 async def root():
     return {"message": "FastAPI 서버와 스케줄러가 실행 중입니다."}
 
->>>>>>> ff82dd1f9194b9ec0c608202852e2c42b1c926fe
 if __name__ == "__main__":
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-<<<<<<< HEAD
-    
-=======
    
->>>>>>> ff82dd1f9194b9ec0c608202852e2c42b1c926fe
     import uvicorn
     config = uvicorn.Config(app, host="0.0.0.0", port=8005, log_level="info")
     server = uvicorn.Server(config)

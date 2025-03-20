@@ -134,7 +134,7 @@ async def get_weekly_sleep_data():
 
 @router.get("/sleep-data/mlp-update")
 async def mlp_update_endpoint(
-    date: str = Query(..., description="2025-03-20")
+    date: str = Query(..., description="2025-03-19")
 ):
     """
     DB에 저장된 특정 날짜의 수면 데이터를 조회하여, 
@@ -158,4 +158,4 @@ async def mlp_update_endpoint(
     if update_result.modified_count == 0:
         raise HTTPException(status_code=500, detail="수면 점수 업데이트 실패")
     
-    return {"message": "수면 점수 업데이트 완료", "sleep_score": new_score}
+    return {"result": "모델 적용 수면 점수 결과", "sleep_score": new_score, "message":"2025-03-19 DB 업데이트 완료"}
