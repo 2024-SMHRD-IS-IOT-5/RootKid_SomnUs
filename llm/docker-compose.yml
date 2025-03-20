@@ -1,0 +1,19 @@
+services:
+  llm_server:
+    build: .
+    container_name: llm_server
+    env_file: .env 
+    volumes:
+      - .:/app # 코드가 컨테이너에 자동 반영
+    ports:
+      - "8000:8000"
+#   mongodb:
+#     image: mongo
+#     container_name: mongodb
+#     ports:
+#       - "27017:27017"
+#     env_file: .env
+#     volumes:
+#       - mongodb_data:/data/db
+# volumes:
+#   mongodb_data:
