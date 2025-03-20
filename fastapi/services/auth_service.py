@@ -35,7 +35,8 @@ async def register_parent(parent: ParentRegister):
     new_parent = {
         "student_id": parent.student_id,
         "id": parent.id,
-        "password": hashed_password
+        "password": hashed_password,
+        "role": "parent"
     }
 
     await parents_collection.insert_one(new_parent)
@@ -57,9 +58,16 @@ async def login_user(user: UserLogin):
     if not db_user or not verify_password(user.password, db_user["password"]):
         raise HTTPException(status_code=400, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
     
-    # 4. JWT 토근 생성
+    # 4. 부모의 경우 student_id 추가
+    payload = {"sub":user.id , "role":user_type}
+    if user_type == "parent":
+        payload["student_id"] = db_user.get("student_id")
+        
+    # 5. JWT 토근 생성
     access_token = create_access_token(
-        {"sub":user.id, "role": user_type},
+        payload,
         expires_delta=timedelta(hours=1)
         )
+    
+    print("토큰: ", access_token)
     return TokenResponse(access_token=access_token, token_type="bearer")

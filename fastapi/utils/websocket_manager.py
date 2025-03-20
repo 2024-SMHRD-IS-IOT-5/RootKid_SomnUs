@@ -34,7 +34,6 @@ class WebSocketManager:
                 # 챗봇 응답을 클라이언트에게 전송
                 await websocket.send_text(json.dumps({"sender":"chatbot", "text":chatbot_response}))
                 
-
         except WebSocketDisconnect:
             await self.disconnect(websocket)
 

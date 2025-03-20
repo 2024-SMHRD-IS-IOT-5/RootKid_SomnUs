@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from datetime import datetime, timedelta
-from core.database import processing_sleep_collection, sleep_collection
+from core.database import processing_sleep_collection, sleep_collection, chat_collection, report_collection
 from core.config import CHATBOT_SERVER_URL
-from utils.time import get_monthly_week, format_seconds, format_time, format_week_number
+from utils.time import get_monthly_week, format_seconds, format_time, format_week_number, convert_flutter_week_to_db_format, get_monday_date_from_flutter_week, convert_calander_date
 import httpx # type: ignore
 import json
 
@@ -24,7 +24,9 @@ class SleepService:
     
     @staticmethod
     async def get_daily_sleep_data(user_id: str, date: str) -> dict:
-        sleep_data = await sleep_collection.find_one({"id": user_id, "date": date}, sort=[("_id", -1)])
+        covnert_date = datetime.strptime(date, "%Y-%m-%d")
+        format_date = covnert_date.strftime("%Y-%m-%d")
+        sleep_data = await sleep_collection.find_one({"id": user_id, "date": format_date}, sort=[("_id", -1)])
         if not sleep_data:
             raise HTTPException(status_code=404, detail="해당 날짜의 수면 데이터가 없습니다.")
         formatted_data = {
@@ -49,17 +51,24 @@ class SleepService:
             "aggregation_type": sleep_data["aggregation_type"]
         }
         
-        chatbot_response = await send_sleep_data_to_chatbot(formatted_data)
+        #chatbot_response = await send_sleep_data_to_chatbot(formatted_data)
+        result = await report_collection.find_one(
+            {"id": user_id, "date": format_date, "type": "daily"}, sort=[("_id", -1)],
+            projection={"comment": 1, "_id": 0}  # comment 필드만 반환, _id 제외
+        )
+        chatbot_response = result.get("comment") if result else None
+
         response_data = json.loads(json.dumps({"sleep_data": formatted_data, "chatbot_response": chatbot_response}, ensure_ascii=False))
         return response_data
     
-    
     @staticmethod
-    async def get_weekly_sleep_data(user_id: str) -> dict:
-        last_week_date = datetime.today() - timedelta(days=7)
-        week_number = get_monthly_week(last_week_date.strftime("%Y-%m-%d"))
+    async def get_weekly_sleep_data(user_id: str, date:str) -> dict:
+        # Flutter에서 전달된 "3월 3주차" 형식을 DB 형식("YYYY-MM-W3")으로 변환
+        formatted_week = convert_flutter_week_to_db_format(date)
+        # 해당 주의 월요일 날짜 계산
+        monday_date = get_monday_date_from_flutter_week(date)
         weekly_data = await processing_sleep_collection.find_one(
-            {"id": user_id, "week_number": week_number, "aggregation_type": "weekly"},
+            {"id": user_id, "week_number": formatted_week, "aggregation_type": "weekly"},
             sort=[("_id", -1)]
         )
         if not weekly_data:
@@ -74,7 +83,6 @@ class SleepService:
             "week_number": format_week_number(weekly_data["week_number"])
         }
         # 조회한 주간 데이터 외에 해당 주의 월요일부터 일요일까지 데이터도 조회
-        monday_date = last_week_date - timedelta(days=last_week_date.weekday())
         day_names = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
         daily_results = {}
         for i in range(7):
@@ -92,18 +100,23 @@ class SleepService:
                 daily_results[f"{day_names[i]}_score"] = None
                 daily_results[f"{day_names[i]}_time"] = None
      
-        chatbot_response = await send_sleep_data_to_chatbot(formatted_weekly_data)     
+        #chatbot_response = await send_sleep_data_to_chatbot(formatted_weekly_data)     
+        result = await report_collection.find_one(
+            {"id": user_id, "date": formatted_week, "type": "weekly"}, sort=[("_id", -1)],
+            projection={"comment": 1, "_id": 0}  # comment 필드만 반환, _id 제외
+        )
+        chatbot_response = result.get("comment") if result else None
+        
         response_data = json.loads(json.dumps({
             "weekly_data": formatted_weekly_data,
             "daily_data": daily_results,
             "chatbot_response": chatbot_response}, ensure_ascii=False))
         
         return response_data
-
+    
     @staticmethod
     async def get_monthly_sleep_data(user_id: str) -> dict:
-        today = datetime.today()
-        first_day_this_month = today.replace(day=1)
+        first_day_this_month = datetime.today().replace(day=1)
         previous_month_last_day = first_day_this_month - timedelta(days=1)
         monthly_number = f"{previous_month_last_day.year}-{previous_month_last_day.month:02d}"
         monthly_data = await processing_sleep_collection.find_one(
@@ -121,6 +134,30 @@ class SleepService:
             "avg_sleep_score": monthly_data["avg_sleep_score"],
             "month_number": monthly_data["month_number"]
         }
+        
+        # 한 달간 최소,최대 sleep_score 구하기
+        agg_cursor = sleep_collection.aggregate([
+            {"$match":{"id":user_id, "month_number":monthly_number}},
+            {"$group":{
+                "_id" : None,
+                "min_sleep_score":{"$min":"$sleep_score"},
+                "max_sleep_score":{"$max":"$sleep_score"},
+                "min_sleep_time": { "$min": { "$subtract": ["$endDt", "$startDt"] } },
+                "max_sleep_time": { "$max": { "$subtract": ["$endDt", "$startDt"] } }
+            }}
+        ])
+        agg_result = await agg_cursor.to_list(length=1)
+        if agg_result:
+            min_sleep_score = agg_result[0].get("min_sleep_score")
+            max_sleep_score = agg_result[0].get("max_sleep_score")
+            min_sleep_time = format_seconds(agg_result[0].get("min_sleep_time"))
+            max_sleep_time = format_seconds(agg_result[0].get("max_sleep_time"))
+        else:
+            min_sleep_score = None
+            max_sleep_score = None
+            min_sleep_time = None
+            max_sleep_time = None
+            
         # 주간 데이터 조회: weekly 데이터 중 week_number가 전 달의 월 정보로 시작하는 문서를 모두 조회
         weekly_cursor = processing_sleep_collection.find({
             "id": user_id,
@@ -140,14 +177,50 @@ class SleepService:
         if ("5w_time" not in formatted_weekly_dict) or (formatted_weekly_dict["5w_time"] is None):
             formatted_weekly_dict["5w_time"] = format_seconds(0)
        
-        chatbot_response = await send_sleep_data_to_chatbot(formatted_monthly_data)
+        #chatbot_response = await send_sleep_data_to_chatbot(formatted_monthly_data)
+        result = await report_collection.find_one(
+            {"id": user_id, "date": monthly_number, "type": "monthly"}, sort=[("_id", -1)],
+            projection={"comment": 1, "_id": 0}  # comment 필드만 반환, _id 제외
+        )
+        chatbot_response = result.get("comment") if result else None
+       
         response_data = json.loads(json.dumps({
         "monthly_data": formatted_monthly_data,
         "weekly_data": formatted_weekly_dict,
+        "min_sleep_score": min_sleep_score,
+        "max_sleep_score": max_sleep_score,
+        "min_sleep_time" : min_sleep_time,
+        "max_sleep_time" : max_sleep_time,
         "chatbot_response": chatbot_response}, ensure_ascii=False))
 
         return response_data
   
+    async def get_calendar_data(user_id:str, date:str) -> dict:
+        """캘린더에 표시할 데이터들을 리스트로 반환"""
+        try:
+            month_prefix = convert_calander_date(date)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        
+        cursor = sleep_collection.find({
+            "id" : user_id,
+            "date": {"$regex": f"^{month_prefix}"}
+        }).sort("date",1)
+        print("cursor: ", cursor)
+        
+        docs = await cursor.to_list(length=None)
+        calander_data = []
+        
+        for doc in docs:
+            calander_data.append({
+                "date" : doc.get("date"),
+                "sleep_score" : doc.get("sleep_score")
+            })
+        print("calander_data: ", calander_data)
+            
+        return {"calendar_data" : calander_data}
+                
+    
     
     async def _calculate_average(self, query:dict)->dict:
         """Mongo DB에서 수면 데이터를 조회하고 평균 계산"""

@@ -11,40 +11,55 @@ sleep_service = SleepService()
 
 @router.get("/sleep-data")
 async def get_sleep_data(current_user : TokenData = Depends(get_current_user)):
-    """현재 로그인한 클라이언트의 전날 수면 데이터를 조회하여 변환 후 반환"""
+    """현재 로그인한 클라이언트의 전날 수면 데이터를 조회하여 변환 후 반환-메인페이지용"""
     try:
-        data = await SleepService.get_daily_sleep_data(current_user.user_id, (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d"))
-        print("일일데이터 :", data)
+        actual_user_id = current_user.student_id if current_user.role == "parent" else current_user.user_id
+        data = await SleepService.get_daily_sleep_data(actual_user_id, datetime.today().strftime("%Y-%m-%d"))
+        print("Main Data :", data)
         return JSONResponse(content=data, headers={"Content-Type": "application/json; charset=utf-8"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/sleep-data/calendar")
-async def get_sleep_data_calendar(date:str, current_user : TokenData = Depends(get_current_user)):
+async def get_calendar_data(date:str, current_user : TokenData = Depends(get_current_user)):
+    """캘린더에 띄울 데이터"""
+    try:
+        actual_user_id = current_user.student_id if current_user.role == "parent" else current_user.user_id
+        data = await SleepService.get_calendar_data(actual_user_id, date)
+        print("Calendar Data :", data)
+        return JSONResponse(content=data, headers={"Content-Type": "application/json; charset=utf-8"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/sleep-data/report")
+async def get_sleep_data_report(date:str, current_user : TokenData = Depends(get_current_user)):
     """클라이언트가 지정한 일일 데이터를 조회하여 변환 후 반환"""
     try:
-        data = await SleepService.get_daily_sleep_data(date, current_user.user_id)
-        print("일일데이터 :", data)
+        actual_user_id = current_user.student_id if current_user.role == "parent" else current_user.user_id
+        data = await SleepService.get_daily_sleep_data(actual_user_id, date)
+        print("Daily Report :", data)
         return JSONResponse(content=data, headers={"Content-Type": "application/json; charset=utf-8"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.get("/sleep-data/weekly")
-async def get_weekly_sleep_data(current_user: TokenData = Depends(get_current_user)):
-    """저번 주 수면 데이터 조회"""
+async def get_weekly_sleep_data(date:str, current_user: TokenData = Depends(get_current_user)):
+    """주간 수면 데이터 """
     try:
-        data = await SleepService.get_weekly_sleep_data(current_user.user_id)
-        print("주간데이터 :", data)
+        actual_user_id = current_user.student_id if current_user.role == "parent" else current_user.user_id
+        data = await SleepService.get_weekly_sleep_data(actual_user_id, date)
+        print("Weekly Report :", data)
         return JSONResponse(content=data, headers={"Content-Type": "application/json; charset=utf-8"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/sleep-data/monthly")
 async def get_monthly_sleep_data(current_user: TokenData = Depends(get_current_user)):
-    """저번 달 수면 데이터 조회"""
+    """월간 수면 데이터 """
     try:
-        data = await SleepService.get_monthly_sleep_data(current_user.user_id)
-        print("월간데이터 :", data)
+        actual_user_id = current_user.student_id if current_user.role == "parent" else current_user.user_id
+        data = await SleepService.get_monthly_sleep_data(actual_user_id)
+        print("<onthly Report :", data)
         return JSONResponse(content=data, headers={"Content-Type": "application/json; charset=utf-8"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,3 +1,4 @@
+
 from fastapi import WebSocket
 from utils.websocket_manager import websocket_manager
 
@@ -16,9 +17,9 @@ class WebSocketService:
         """메시지 수신"""
         await websocket_manager.receive_message(websocket)
 
-    async def broadcast_message(self, message: str):
-        """모든 클라이언트에게 메시지 전송"""
-        await websocket_manager.broadcast(message)
+    # async def broadcast_message(self, message: str):
+    #     """모든 클라이언트에게 메시지 전송"""
+    #     await websocket_manager.broadcast(message)
 
 # WebSocket 서비스 인스턴스 생성
 websocket_service = WebSocketService()
